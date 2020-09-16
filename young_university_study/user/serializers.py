@@ -82,11 +82,12 @@ class UserLoginSerializer(serializers.ModelSerializer):
         """
         try:
             r = requests.get(
-                'https://promise.makiras.work/get_token/user?code=' +  value)
-            data = json.loads(r.json())
+                'https://youth.bupt.edu.cn/token/wx_info?code=' +  value)
+            data = r.json()
             return data['openid']
         except Exception as e:
             raise serializers.ValidationError("请输入正确code")
+
 
 
 class UserRankResponseSerializer(serializers.ModelSerializer):
@@ -109,8 +110,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
         """
         try:
             r = requests.get(
-                'https://promise.makiras.work/get_token/user?code=' +  value)
-            data = json.loads(r.json())
+                'https://youth.bupt.edu.cn/token/wx_info?code=' +  value)
+            data = r.json()
             return data['openid']
         except Exception as e:
             raise serializers.ValidationError("请输入正确code")
