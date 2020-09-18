@@ -2,11 +2,13 @@ from rest_framework import viewsets, permissions, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
+from ..user.models import user_has_college_permission
 from drf_yasg.utils import swagger_auto_schema
 from .models import *
 from .serializers import *
-import grpc
-from .grpc import api_pb2_grpc, api_pb2
+# import grpc
+import django_excel as excel
+# from .grpc import api_pb2_grpc, api_pb2
 
 
 class StudyPeriodViewSetPermission(permissions.BasePermission):
@@ -45,8 +47,49 @@ class StudyRecordingViewSet(mixins.CreateModelMixin,
                             viewsets.GenericViewSet):
     queryset = StudyRecording.objects.all()
     serializer_class = StudyRecordingSerializer
-    grpc_stub = api_pb2_grpc.CreditStub(
-        grpc.insecure_channel('localhost:50051'))
+    # grpc_stub = api_pb2_grpc.CreditStub(
+        # grpc.insecure_channel('localhost:50051'))
+
+
+    @action(methods=['GET'], detail=False)
+    def as_excel(self, request):
+        serializer = StudyRecordingListSerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+        if serializer.validated_data['college_id'] == -1 and not request.user.is_superuser:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        elif serializer.validated_data['college_id'] != -1 and not user_has_college_permission(request.user, serializer.validated_data['college_id']):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        periods = StudyPeriod.objects.filter(season=serializer.validated_data['season'])
+
+        excel_data = []
+        excel_header = ['学号', '姓名']
+        for period in periods:
+            excel_header.append('第%d季第%d期完成情况' % (period.season, period.period))
+        excel_data.append(excel_header)
+
+        if serializer.validated_data['college_id'] == -1:
+            recordings = StudyRecording.objects.select_related('user_id').select_related('study_id').filter(study_id__in=periods).order_by('user_id')
+        else:
+            recordings = StudyRecording.objects.select_related('user_id').select_related('study_id').filter(user_id__college=serializer.validated_data['college_id'], study_id__in=periods).order_by('user_id')
+        
+        is_start_flag = 0
+        excel_iter = ['未完成'] * len(excel_header)
+        for r in recordings.iterator():
+            if excel_iter[0] != r.user_id.id:
+                if not is_start_flag:
+                    is_start_flag = 1
+                else:
+                    excel_data.append(excel_iter)
+                excel_iter = ['未完成'] * len(excel_header)
+                excel_iter[0] = str(r.user_id.id)
+                excel_iter[1] = r.user_id.name
+            excel_iter[r.study_id.period + 2] = '已完成'
+        excel_data.append(excel_iter)
+            
+
+        sheet = excel.pe.Sheet(excel_data)
+        book = excel.pe.Book({'sheet1': sheet})
+        return excel.make_response(book, "xlsx", file_name = "main.xlsx", sheet_name = "main")
 
     def create(self, request, *args, **kwargs):
         lastst_study = StudyPeriod.objects.latest('id')

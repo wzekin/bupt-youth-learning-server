@@ -16,3 +16,7 @@ class StudyRecordingSerializer(serializers.ModelSerializer):
         model = StudyRecording
         fields = '__all__'
         read_only_fields = ('id', 'create', 'user_id', 'study_id', 'score', 'detail')
+
+class StudyRecordingListSerializer(serializers.Serializer):
+    college_id = serializers.IntegerField()
+    season = serializers.IntegerField()
