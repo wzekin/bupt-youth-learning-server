@@ -5,7 +5,6 @@ from rest_framework.decorators import action, permission_classes
 from rest_framework.status import HTTP_200_OK
 from django.core.exceptions import ObjectDoesNotExist
 from drf_yasg.utils import swagger_auto_schema
-import requests
 from .models import *
 from .serializers import *
 

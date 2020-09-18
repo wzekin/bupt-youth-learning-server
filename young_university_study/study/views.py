@@ -135,6 +135,6 @@ class StudyRecordingViewSet(mixins.CreateModelMixin,
             i += 1
         return i + 1
 
-    def send_grpc(self, study_score):
-        return self.grpc_stub.AddScore(api_pb2.AddScoreReq(
-            user_id=str(self.request.user.id), score=study_score.score, comment="青年大学习" + study_score.detail))
+    # def send_grpc(self, study_score):
+    #     return self.grpc_stub.AddScore(api_pb2.AddScoreReq(
+    #         user_id=str(self.request.user.id), score=study_score.score, comment="青年大学习" + study_score.detail))
