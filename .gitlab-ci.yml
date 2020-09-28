@@ -6,6 +6,5 @@ stages:
 test:
   stage: test
   script:
-    - cd youth-learning-server
     - pip3 install -r requirements.txt
     - python3 manage.py test
