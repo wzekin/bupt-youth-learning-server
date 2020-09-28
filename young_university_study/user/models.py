@@ -1,9 +1,7 @@
-from enum import unique
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import ObjectDoesNotExist
 
 # Create your models here.
 
@@ -71,7 +69,10 @@ class LeagueBranch(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.name
+        return '%s-%s' % (self.college.name, self.name)
+
+    class Meta:
+        unique_together = (("name", "college"),)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -135,8 +136,19 @@ class Permission(models.Model):
 
 
 def user_has_college_permission(user, college_id):
-    return user.permissions.filter(permission_type=ContentType.objects.get_for_model(College), permission_id=college_id).exists()
+    if user.is_anonymous:
+        return False
+    return user.is_superuser or user.permissions.filter(permission_type=ContentType.objects.get_for_model(College), permission_id=college_id).exists()
 
 
-def user_has_league_permission(user, league_id):
-    return user.permissions.filter(permission_type=ContentType.objects.get_for_model(LeagueBranch), permission_id=league_id).exists()
+def user_has_league_permission(user, college_id, league_id):
+    if user.is_anonymous:
+        return False
+    return (
+        user.is_superuser or
+            user.permissions.filter(permission_type=ContentType.objects.get_for_model(LeagueBranch), permission_id=league_id).exists()
+                or (
+                    user_has_college_permission(user, college_id)
+                    and LeagueBranch.objects.filter(id=league_id, college=college_id).exists()
+                )
+            )

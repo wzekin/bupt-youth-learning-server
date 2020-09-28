@@ -2,13 +2,16 @@ from rest_framework import viewsets, permissions, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.status import HTTP_400_BAD_REQUEST
-from ..user.models import user_has_college_permission
+from django.conf import settings
+from ..user.models import user_has_college_permission, User
 from drf_yasg.utils import swagger_auto_schema
 from .models import *
 from .serializers import *
 # import grpc
 import django_excel as excel
 # from .grpc import api_pb2_grpc, api_pb2
+import jwt
+import datetime
 
 
 class StudyPeriodViewSetPermission(permissions.BasePermission):
@@ -20,7 +23,7 @@ class StudyPeriodViewSetPermission(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         # 只有校级管理员可以删除
-        if view.action == 'destory':
+        if view.action == 'destroy':
             return request.user.is_superuser
         return True
 
@@ -48,48 +51,80 @@ class StudyRecordingViewSet(mixins.CreateModelMixin,
     queryset = StudyRecording.objects.all()
     serializer_class = StudyRecordingSerializer
     # grpc_stub = api_pb2_grpc.CreditStub(
-        # grpc.insecure_channel('localhost:50051'))
+    # grpc.insecure_channel('localhost:50051'))
 
-
-    @action(methods=['GET'], detail=False)
+    @action(methods=['GET', 'POST'], detail=False)
     def as_excel(self, request):
-        serializer = StudyRecordingListSerializer(data=request.query_params)
-        serializer.is_valid(raise_exception=True)
-        if serializer.validated_data['college_id'] == -1 and not request.user.is_superuser:
-            return Response(status=status.HTTP_403_FORBIDDEN)
-        elif serializer.validated_data['college_id'] != -1 and not user_has_college_permission(request.user, serializer.validated_data['college_id']):
-            return Response(status=status.HTTP_403_FORBIDDEN)
-        periods = StudyPeriod.objects.filter(season=serializer.validated_data['season'])
+        if request.method == 'POST':
+            serializer = StudyRecordingListSerializer(
+                data=request.query_params)
+            serializer.is_valid(raise_exception=True)
+            if not request.user.is_superuser and not user_has_college_permission(request.user, serializer.validated_data['college_id']):
+                return Response(status=status.HTTP_403_FORBIDDEN)
 
-        excel_data = []
-        excel_header = ['学号', '姓名']
-        for period in periods:
-            excel_header.append('第%d季第%d期完成情况' % (period.season, period.period))
-        excel_data.append(excel_header)
+            college_id = serializer.validated_data['college_id']
+            study_min = serializer.validated_data['study_min']
+            study_max = serializer.validated_data['study_max']
+            encoded = jwt.encode(
+                {'college_id': college_id, 'study_min': study_min, 'study_max': study_max,
+                    'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=5)}, settings.SECRET_KEY, algorithm='HS256'
+            )
+            return Response(encoded, status=status.HTTP_200_OK)
+        elif request.method == 'GET':
+            token = request.query_params.get('token', None)
+            if token is None:
+                return Response(status=status.HTTP_403_FORBIDDEN)
 
-        if serializer.validated_data['college_id'] == -1:
-            recordings = StudyRecording.objects.select_related('user_id').select_related('study_id').filter(study_id__in=periods).order_by('user_id')
-        else:
-            recordings = StudyRecording.objects.select_related('user_id').select_related('study_id').filter(user_id__college=serializer.validated_data['college_id'], study_id__in=periods).order_by('user_id')
-        
-        is_start_flag = 0
-        excel_iter = ['未完成'] * len(excel_header)
-        for r in recordings.iterator():
-            if excel_iter[0] != r.user_id.id:
-                if not is_start_flag:
-                    is_start_flag = 1
-                else:
-                    excel_data.append(excel_iter)
+            try:
+                decoded = jwt.decode(
+                    token, settings.SECRET_KEY, algorithm='HS256')
+            except (jwt.ExpiredSignatureError, jwt.DecodeError):
+                return Response(status=status.HTTP_403_FORBIDDEN)
+
+            study_min = decoded['study_min']
+            study_max = decoded['study_max']
+            college_id = decoded['college_id']
+
+            periods = StudyPeriod.objects.filter(
+                id__gte=study_min,
+                id__lte=study_max
+            )
+
+            excel_data = []
+            excel_header = ['学号', '姓名', '学院', '团支部']
+            for period in periods:
+                excel_header.append('第%d季第%d期完成情况' %
+                                    (period.season, period.period))
+            excel_data.append(excel_header)
+
+            users = User.objects.select_related(
+                'college'
+            ).select_related(
+                'league_branch'
+            )
+
+            if college_id != -1:
+                users = users.filter(
+                    college=college_id)
+
+            users = users.prefetch_related('recording')
+
+            for user in users:
                 excel_iter = ['未完成'] * len(excel_header)
-                excel_iter[0] = str(r.user_id.id)
-                excel_iter[1] = r.user_id.name
-            excel_iter[r.study_id.period + 2] = '已完成'
-        excel_data.append(excel_iter)
-            
+                excel_iter[0] = str(user.id)
+                excel_iter[1] = user.name
+                excel_iter[2] = user.college.name if user.college is not None else ''
+                excel_iter[3] = user.league_branch.name if user.league_branch is not None else ''
+                for r in user.recording.all():
+                    if (study_min <= r.study_id_id <= study_max):
+                        excel_iter[r.study_id.id - periods[0].id + 4] = '已完成'
 
-        sheet = excel.pe.Sheet(excel_data)
-        book = excel.pe.Book({'sheet1': sheet})
-        return excel.make_response(book, "xlsx", file_name = "main.xlsx", sheet_name = "main")
+                excel_data.append(excel_iter)
+
+            sheet = excel.pe.Sheet(excel_data)
+            book = excel.pe.Book({'sheet1': sheet})
+            return excel.make_response(book, "xlsx", file_name="main.xlsx", sheet_name="main")
+
 
     def create(self, request, *args, **kwargs):
         lastst_study = StudyPeriod.objects.latest('id')

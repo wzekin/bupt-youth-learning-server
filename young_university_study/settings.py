@@ -26,7 +26,7 @@ SECRET_KEY = '#nj)x$&ejgg*xmj**n$8t(0hz-sxt8q-*$z6go2q_q8@st7d+t'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['123.56.70.65', '127.0.0.1']
+ALLOWED_HOSTS = ['123.56.70.65', '127.0.0.1', 'localhost']
 
 
 # Application definition
@@ -144,3 +144,4 @@ AUTH_USER_MODEL = 'user.User'
 SILKY_AUTHENTICATION = True  # User must login
 SILKY_AUTHORISATION = True  # User must have permissions
 SILKY_META = True
+

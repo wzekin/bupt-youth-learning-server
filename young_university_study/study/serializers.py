@@ -19,4 +19,5 @@ class StudyRecordingSerializer(serializers.ModelSerializer):
 
 class StudyRecordingListSerializer(serializers.Serializer):
     college_id = serializers.IntegerField()
-    season = serializers.IntegerField()
+    study_min = serializers.IntegerField()
+    study_max = serializers.IntegerField()

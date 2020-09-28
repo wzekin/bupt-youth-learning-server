@@ -1,16 +1,26 @@
 from django.contrib.auth import login
 from rest_framework import viewsets, permissions, status, mixins
 from rest_framework.response import Response
-from rest_framework.decorators import action, permission_classes
+from rest_framework.decorators import action
 from rest_framework.status import HTTP_200_OK
 from django.core.exceptions import ObjectDoesNotExist
 from drf_yasg.utils import swagger_auto_schema
 from .models import *
 from .serializers import *
 
+class BaseViewSet(viewsets.GenericViewSet):
+    serializer_class_map = {}
+
+    def get_serializer_class(self):
+        if self.action in self.serializer_class_map:
+            return self.serializer_class_map[self.action]
+        else:
+            return super().get_serializer_class()
 
 class UserViewSetPermission(permissions.BasePermission):
     def has_permission(self, request, view):
+        if request.user.is_anonymous:
+            return False
         # 只有校级管理员可以创建
         if view.action == 'list':
             return request.user.is_superuser
@@ -25,25 +35,20 @@ class UserViewSetPermission(permissions.BasePermission):
             return request.user.is_superuser
         return True
 
-
 class UserViewSet(
         mixins.ListModelMixin,
         mixins.UpdateModelMixin,
         mixins.RetrieveModelMixin,
         mixins.CreateModelMixin,
-        viewsets.GenericViewSet):
+        BaseViewSet):
     queryset = User.objects.all()
+    serializer_class = UserSerializer
     permission_classes = (UserViewSetPermission,)
-
-    def get_serializer_class(self):
-        if self.request.method == 'PUT' and self.action == 'me':
-            return UserUpdateSerializer
-        elif self.action == 'create':
-            return UserCreateSerializer
-        elif self.action == 'login':
-            return UserLoginSerializer
-        else:
-            return UserSerializer
+    serializer_class_map = {
+        'me': UserUpdateSerializer,
+        'create': UserCreateSerializer,
+        'login': UserLoginSerializer,
+    }
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -72,7 +77,7 @@ class UserViewSet(
         if u.is_anonymous:
             return Response(status=status.HTTP_403_FORBIDDEN)
         if request.method == 'GET':
-            serializer = self.get_serializer(u)
+            serializer = UserSerializer(u)
             return Response(serializer.data)
         if request.method == 'PUT':
             serializer = self.get_serializer(
@@ -99,10 +104,10 @@ class UserViewSet(
 
     @action(methods=['GET'], detail=False)
     @swagger_auto_schema(operation_description='获得团支部的所有学生的信息',
-                         query_serializer=LeagueBranchRankRequestSerializer,
-                         responses={200: UserRankResponseSerializer(many=True)})
+                         query_serializer=LeagueBranchRequestSerializer,
+                         responses={200: UserSerializer(many=True)})
     def ranks(self, request):
-        serializer = LeagueBranchRankRequestSerializer(
+        serializer = LeagueBranchRequestSerializer(
             data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
@@ -110,7 +115,7 @@ class UserViewSet(
         college_id = serializer.validated_data['college_id']
         league_branch_id = serializer.validated_data['league_branch_id']
 
-        if not request.user.is_superuser and not user_has_college_permission(u, college_id) and not user_has_league_permission(u, league_branch_id):
+        if not user_has_league_permission(u, college_id, league_branch_id):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         queryset = User.objects.filter(
@@ -124,13 +129,53 @@ class UserViewSet(
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+    @action(methods=['GET'], detail=False)
+    @swagger_auto_schema(operation_description='获得团支部的所有学生的信息',
+                         query_serializer=UserRankInRangeRequestSerializer,
+                         responses={200: UserSerializer(many=True)})
+    def ranks_in_range(self, request):
+        serializer = UserRankInRangeRequestSerializer(
+            data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        u = request.user
+        college_id = serializer.validated_data['college_id']
+        league_branch_id = serializer.validated_data['league_branch_id']
+        study_min = serializer.validated_data['study_min']
+        study_max = serializer.validated_data['study_max']
+
+        if not user_has_league_permission(u, college_id, league_branch_id):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        queryset = User.objects.filter(
+            college=college_id, league_branch=league_branch_id
+        ).select_related("college").select_related("league_branch").annotate(
+            total_study_in_range=models.Count("recording__id", distinct=True, filter=models.Q(
+                    recording__study_id__gte=study_min, recording__study_id__lte=study_max))
+        ).order_by('-total_study_in_range')
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = UserRankInRangeResponseSerializer(
+                page, many=True, study_min=study_min, study_max=study_max)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = UserRankInRangeResponseSerializer(
+            queryset, many=True, study_min=study_min, study_max=study_max)
+        return Response(serializer.data)
 
 class CollegeViewSet(mixins.CreateModelMixin,
                      mixins.DestroyModelMixin,
                      mixins.ListModelMixin,
-                     viewsets.GenericViewSet):
+                     BaseViewSet):
     queryset = College.objects.all()
     serializer_class = CollegeSerializer
+    serializer_class_map = {
+            'rank': CollegeRequestSerializer,
+            # 'ranks': CollegeRequestSerializer,
+            'rank_in_range': LeagueRankInRangeRequestSerializer,
+            'ranks_in_range': CollegeRankInRangeRequestSerializer,
+        }
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -150,13 +195,15 @@ class CollegeViewSet(mixins.CreateModelMixin,
 
     @action(methods=['GET'], detail=False)
     @swagger_auto_schema(operation_description='获得此学院的排名以及学院总数, 要求为校级管理员或此学院的管理员',
-                         query_serializer=CollegeRankRequestSerializer,
+                         query_serializer=CollegeRequestSerializer,
                          responses={200: RankResponseSerializer()})
     def rank(self, request):
-        serializer = CollegeRankRequestSerializer(data=request.query_params)
+        serializer = self.get_serializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
-        if not request.user.is_superuser and not user_has_college_permission(request.user, serializer.validated_data['college_id']):
+
+        if not user_has_college_permission(request.user, serializer.validated_data['college_id']):
             return Response(status=status.HTTP_403_FORBIDDEN)
+
         total = College.objects.count()
         rank = 1
         # TODO 优化这个for
@@ -185,44 +232,108 @@ class CollegeViewSet(mixins.CreateModelMixin,
         serializer = CollegeRanksResponseSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @action(methods=['GET'], detail=False)
+    @swagger_auto_schema(operation_description='获得所有学院的信息，以及学院的学习总数，要求为校级管理员',
+                         query_serializer=CollegeRankInRangeRequestSerializer,
+                         responses={200: CollegeRanksResponseSerializer(many=True)})
+    def ranks_in_range(self, request):
+        serializer = self.get_serializer(
+            data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        if not request.user.is_superuser:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        study_min = serializer.validated_data['study_min']
+        study_max = serializer.validated_data['study_max']
+
+        queryset = College.objects.annotate(
+            user_num=models.Count("user__id", distinct=True),
+            total_study_in_range=models.Count(
+                "user__recording__id", distinct=True, filter=models.Q(
+                    user__recording__study_id__gte=study_min, user__recording__study_id__lte=study_max
+                )),
+        ).order_by('-total_study_in_range')
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = CollegeRankInRangeResponseSerializer(
+                page, many=True, study_min=study_min, study_max=study_max)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = CollegeRankInRangeResponseSerializer(
+            queryset, many=True, study_min=study_min, study_max=study_max)
+        return Response(serializer.data)
+
+    @action(methods=['GET'], detail=False)
+    def rank_in_range(self, request):
+        serializer = self.get_serializer(
+            data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        if not user_has_college_permission(request.user, serializer.validated_data['college_id']):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        college_id = serializer.validated_data['college_id']
+        study_min = serializer.validated_data['study_min']
+        study_max = serializer.validated_data['study_max']
+
+        queryset = College.objects.annotate(
+            user_num=models.Count("user__id", distinct=True),
+            total_study_in_range=models.Count(
+                "user__recording__id", distinct=True, filter=models.Q(
+                    user__recording__study_id__gte=study_min, user__recording__study_id__lte=study_max
+                )),
+        ).order_by('-total_study_in_range').get(id=college_id)
+
+        serializer = CollegeRankInRangeResponseSerializer(
+            queryset, study_min=study_min, study_max=study_max)
+        return Response(serializer.data)
 
 class LeagueBranchViewSet(mixins.CreateModelMixin,
                           mixins.DestroyModelMixin,
                           mixins.ListModelMixin,
-                          viewsets.GenericViewSet):
+                          BaseViewSet):
     queryset = LeagueBranch.objects.all()
     serializer_class = LeagueBranchSerializer
+    serializer_class_map = {
+            'rank': LeagueBranchRequestSerializer,
+            'ranks': CollegeRequestSerializer,
+            'rank_in_range': UserRankInRangeRequestSerializer,
+            'ranks_in_range': LeagueRankInRangeRequestSerializer,
+        }
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        if not request.user.is_superuser and not user_has_college_permission(request.user, serializer.validated_data["college"].id):
+        if not user_has_college_permission(request.user, serializer.validated_data["college"].id):
             return Response(status=status.HTTP_403_FORBIDDEN)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
+
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        if not request.user.is_superuser and not user_has_college_permission(request.user, instance.college.id):
+        if not user_has_college_permission(request.user, instance.college.id):
             return Response(status=status.HTTP_403_FORBIDDEN)
         self.perform_destroy(instance)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+
     @action(methods=['GET'], detail=False)
     @swagger_auto_schema(operation_description='获得此团支部的排名, 要求为此团支部的管理员以及上级管理员',
-                         query_serializer=LeagueBranchRankRequestSerializer,
+                         query_serializer=LeagueBranchRequestSerializer,
                          responses={200: RankResponseSerializer()})
     def rank(self, request):
-        u = request.user
-        serializer = LeagueBranchRankRequestSerializer(
+        serializer = self.get_serializer(
             data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
-        if (not request.user.is_superuser and
-            not user_has_college_permission(u, serializer.validated_data['college_id']) and
-                not user_has_league_permission(u, serializer.validated_data['league_branch_id'])):
-            # 判断是否有足够的权限
+        u = request.user
+        college_id = serializer.validated_data['college_id']
+        league_branch_id = serializer.validated_data['league_branch_id']
+        if not user_has_league_permission(u, college_id, league_branch_id):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         total = LeagueBranch.objects.count()
@@ -239,65 +350,144 @@ class LeagueBranchViewSet(mixins.CreateModelMixin,
 
         return Response({'rank': rank, 'total': total}, status=HTTP_200_OK)
 
+
     @action(methods=['GET'], detail=False)
     @swagger_auto_schema(operation_description='获得此学院所有团支部的信息，要求为学院管理员和校级管理员',
-                         query_serializer=CollegeRankRequestSerializer,
-                         responses={200: CollegeRanksResponseSerializer(many=True)})
+                         query_serializer=CollegeRequestSerializer,
+                         responses={200: LeagueBranchRanksResponseSerializer(many=True)})
     def ranks(self, request):
-        serializer = CollegeRankRequestSerializer(data=request.query_params)
+        serializer = self.get_serializer(data=request.query_params)
         serializer.is_valid(raise_exception=True)
 
+        u = request.user
         college_id = serializer.validated_data['college_id']
-        if (not request.user.is_superuser and
-                not user_has_college_permission(request.user, college_id)):
-
+        if not user_has_college_permission(u, college_id):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         queryset = None
         if college_id == -1:
-            queryset = LeagueBranch.objects.annotate(total_study=models.Sum(
-                "user__total_study")).order_by('-total_study')
+            queryset = LeagueBranch.objects.annotate(total_study=models.Count(
+                "user__recording__id")).order_by('-total_study')
         else:
-            queryset = LeagueBranch.objects.filter(college=college_id).annotate(total_study=models.Sum(
-                "user__total_study")).order_by('-total_study')
+            queryset = LeagueBranch.objects.filter(college=college_id).annotate(total_study=models.Count(
+                "user__recording__id")).order_by('-total_study')
 
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = CollegeRanksResponseSerializer(page, many=True)
+            serializer = LeagueBranchRanksResponseSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
-        serializer = CollegeRanksResponseSerializer(queryset, many=True)
+        serializer = LeagueBranchRanksResponseSerializer(queryset, many=True)
         return Response(serializer.data)
 
+
+    @action(methods=['GET'], detail=False)
+    def rank_in_range(self, request):
+        serializer = self.get_serializer(
+            data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        u = request.user
+        college_id = serializer.validated_data['college_id']
+        league_branch_id = serializer.validated_data['league_branch_id']
+        study_min = serializer.validated_data['study_min']
+        study_max = serializer.validated_data['study_max']
+
+        if not user_has_league_permission(u, college_id, league_branch_id):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+
+        queryset = LeagueBranch.objects.annotate(
+            user_num=models.Count("user__id", distinct=True),
+            total_study_in_range=models.Count(
+                "user__recording__id", distinct=True, filter=models.Q(
+                    user__recording__study_id__gte=study_min, user__recording__study_id__lte=study_max
+                )),
+        ).order_by('-total_study_in_range').get(college=college_id, id=league_branch_id)
+
+        serializer = LeagueRankInRangeResponseSerializer(
+            queryset, partial=True, study_min=study_min, study_max=study_max
+        )
+        return Response(serializer.data)
+
+
+    @action(methods=['GET'], detail=False)
+    @swagger_auto_schema(operation_description='获得此学院所有团支部的信息，要求为学院管理员和校级管理员，加入limit',
+                         query_serializer=LeagueRankInRangeRequestSerializer,
+                         responses={200: LeagueBranchRanksResponseSerializer(many=True)})
+    def ranks_in_range(self, request):
+        serializer = self.get_serializer(
+            data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        u = request.user
+        college_id = serializer.validated_data['college_id']
+        study_min = serializer.validated_data['study_min']
+        study_max = serializer.validated_data['study_max']
+
+        if not user_has_college_permission(u, college_id):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+
+        queryset = LeagueBranch.objects
+        if college_id != -1:
+            queryset = queryset.filter(
+                college=college_id
+            )
+        queryset = queryset.annotate(
+                user_num=models.Count("user__id", distinct=True),
+                total_study_in_range=models.Count(
+                    "user__recording__id", distinct=True, filter=models.Q(
+                        user__recording__study_id__gte=study_min, user__recording__study_id__lte=study_max
+                    )),
+            ).order_by('-total_study_in_range')
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = LeagueRankInRangeResponseSerializer(
+                page, many=True, partial=True, study_min=study_min, study_max=study_max
+            )
+            return self.get_paginated_response(serializer.data)
+
+        serializer = LeagueRankInRangeResponseSerializer(
+            queryset, many=True, partial=True, study_min=study_min, study_max=study_max
+        )
+        return Response(serializer.data)
 
 def check_permission(user, permission_type, permission_id):
     if (permission_type == ContentType.objects.get_for_model(College) and
             user.is_superuser):
         return True
     if (permission_type == ContentType.objects.get_for_model(LeagueBranch) and
-            (user.is_superuser or user_has_college_permission(user, permission_id))):
+            user_has_college_permission(user, permission_id)):
         return True
     return False
 
+class PermissionPermissions(permissions.BasePermission):
+    """
+      检测User是否具有Permission的权限
+    """
+
+    def has_permission(self, request, view):
+        u :User = request.user
+        if u.is_anonymous:
+            return False
+
+        if view.action == 'create':
+            serializer = None
+            serializer = view.get_serializer(data = request.data)
+            serializer.is_valid(raise_exception=True)
+
+            request._cached_serializer = serializer
+            return check_permission(request.user, serializer.validated_data["permission_type"], serializer.validated_data["permission_id"])
+        return True
+
+    def has_object_permission(self, request, view, obj):
+        return check_permission(request.user, obj.permission_type, obj.permission_id)
 
 class PermissionViewSet(mixins.CreateModelMixin,
                         mixins.DestroyModelMixin,
-                        viewsets.GenericViewSet):
+                        BaseViewSet):
     queryset = Permission.objects.all()
     serializer_class = PermissionSerializer
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        if not check_permission(request.user, serializer.validated_data["permission_type"], serializer.validated_data["permission_id"]):
-            return Response(status=status.HTTP_403_FORBIDDEN)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        if not check_permission(request.user, instance.permission_type, instance.permission_id):
-            return Response(status=status.HTTP_403_FORBIDDEN)
-        self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    permission_classes = (PermissionPermissions, )

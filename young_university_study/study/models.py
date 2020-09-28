@@ -22,7 +22,7 @@ class StudyRecording(models.Model):
     """
     id = models.AutoField(primary_key=True)
     user_id = models.ForeignKey(
-        "user.User", null=False, on_delete=models.CASCADE)
+        "user.User",related_name="recording", null=False, on_delete=models.CASCADE)
     study_id = models.ForeignKey(
         StudyPeriod, null=False, on_delete=models.CASCADE)
     score = models.IntegerField("获得的积分")
@@ -31,3 +31,6 @@ class StudyRecording(models.Model):
 
     class Meta:
         unique_together = (("user_id", "study_id"),)
+
+def get_recording_num(study_min, study_max):
+    return StudyPeriod.objects.filter(id__gte=study_min, id__lte=study_max).count()

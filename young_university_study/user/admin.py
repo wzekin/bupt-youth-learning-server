@@ -14,7 +14,12 @@ class LeagueBranchAdmin(admin.ModelAdmin):
     ordering = ['name']
     search_fields = ['name']
 
+
+class PermissionAdmin(admin.ModelAdmin):
+    ordering = ['id']
+    autocomplete_fields = ["user_id"]
+
 admin.site.register(User, UserAdmin)
 admin.site.register(College, CollegeAdmin)
 admin.site.register(LeagueBranch, LeagueBranchAdmin)
-admin.site.register(Permission)
+admin.site.register(Permission, PermissionAdmin)
