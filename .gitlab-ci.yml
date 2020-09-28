@@ -5,6 +5,11 @@ stages:
 
 test:
   stage: test
+
+  tags:
+    - test
+    - docker
+
   script:
     - pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
     - python3 manage.py test
