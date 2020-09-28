@@ -6,5 +6,5 @@ stages:
 test:
   stage: test
   script:
-    - pip3 install -r requirements.txt
+    - pip3 install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
     - python3 manage.py test
