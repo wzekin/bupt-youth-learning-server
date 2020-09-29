@@ -15,13 +15,13 @@ Including another URLconf
 """
 from django.conf.urls import url
 from django.contrib import admin
-from django.urls import path, include
-from drf_yasg.views import get_schema_view
+from django.urls import include, path
 from drf_yasg import openapi
-
+from drf_yasg.views import get_schema_view
 from rest_framework import permissions
-from .user.urls import urlpatterns as user_url
+
 from .study.urls import urlpatterns as study_url
+from .user.urls import urlpatterns as user_url
 
 schema_view = get_schema_view(
     openapi.Info(

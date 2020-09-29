@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import *
+from .models import StudyPeriod, StudyRecording
 
 
 class StudyPeriodSerializer(serializers.ModelSerializer):
@@ -10,12 +10,13 @@ class StudyPeriodSerializer(serializers.ModelSerializer):
         read_only_fields = ('id',)
 
 
-
 class StudyRecordingSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudyRecording
         fields = '__all__'
-        read_only_fields = ('id', 'create', 'user_id', 'study_id', 'score', 'detail')
+        read_only_fields = ('id', 'create', 'user_id',
+                            'study_id', 'score', 'detail')
+
 
 class StudyRecordingListSerializer(serializers.Serializer):
     college_id = serializers.IntegerField()

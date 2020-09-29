@@ -1,6 +1,6 @@
 from rest_framework.routers import SimpleRouter
-from .views import *
 
+from .views import *
 
 router = SimpleRouter()
 router.register(r'study_period', StudyPeriodViewSet)

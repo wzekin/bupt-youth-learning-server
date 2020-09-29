@@ -1,17 +1,20 @@
-from rest_framework import viewsets, permissions, mixins, status
-from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework.status import HTTP_400_BAD_REQUEST
-from django.conf import settings
-from ..user.models import user_has_college_permission, User
-from drf_yasg.utils import swagger_auto_schema
-from .models import *
-from .serializers import *
+import datetime
+
 # import grpc
 import django_excel as excel
 # from .grpc import api_pb2_grpc, api_pb2
 import jwt
-import datetime
+from django.conf import settings
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import mixins, permissions, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.status import HTTP_400_BAD_REQUEST
+
+from ..user.models import User, user_has_college_permission
+from .models import StudyPeriod, StudyRecording
+from .serializers import (StudyPeriodSerializer, StudyRecordingListSerializer,
+                          StudyRecordingSerializer)
 
 
 class StudyPeriodViewSetPermission(permissions.BasePermission):
@@ -124,7 +127,6 @@ class StudyRecordingViewSet(mixins.CreateModelMixin,
             sheet = excel.pe.Sheet(excel_data)
             book = excel.pe.Book({'sheet1': sheet})
             return excel.make_response(book, "xlsx", file_name="main.xlsx", sheet_name="main")
-
 
     def create(self, request, *args, **kwargs):
         lastst_study = StudyPeriod.objects.latest('id')

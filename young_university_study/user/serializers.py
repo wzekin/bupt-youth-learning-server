@@ -1,7 +1,9 @@
-from rest_framework import serializers
-from .models import College, LeagueBranch, User, Permission
 import requests
+from rest_framework import serializers
+
 from ..study.models import get_recording_num
+from .models import College, LeagueBranch, Permission, User
+
 
 class CodeMixin:
     def validate_code(self, value):
@@ -17,7 +19,6 @@ class CodeMixin:
             raise serializers.ValidationError("请输入正确code")
 
 
-
 class CollegeSerializer(serializers.ModelSerializer):
     """
     CollegeSerializer 基础College序列化类
@@ -26,6 +27,7 @@ class CollegeSerializer(serializers.ModelSerializer):
         model = College
         fields = '__all__'
         read_only_fields = ('id',)
+
 
 class LeagueBranchSerializer(serializers.ModelSerializer):
 
@@ -48,6 +50,7 @@ class PermissionSerializer(serializers.ModelSerializer):
         model = Permission
         fields = ['id', 'user_id', 'permission_type',
                   'permission_id', 'permission_name']
+
 
 class UserSerializer(serializers.ModelSerializer):
     """
@@ -78,7 +81,6 @@ class UserLoginSerializer(serializers.ModelSerializer, CodeMixin):
         fields = ['code']
 
 
-
 class UserCreateSerializer(serializers.ModelSerializer, CodeMixin):
     class Meta:
         model = User
@@ -97,12 +99,12 @@ class UserCreateSerializer(serializers.ModelSerializer, CodeMixin):
         return value
 
 
-
 class CollegeRequestSerializer(serializers.Serializer):
     """
     College请求，获取单个College或者College下的所有团支部
     """
     college_id = serializers.IntegerField()
+
 
 class LeagueBranchRequestSerializer(serializers.Serializer):
 
@@ -111,7 +113,6 @@ class LeagueBranchRequestSerializer(serializers.Serializer):
     """
     college_id = serializers.IntegerField()
     league_branch_id = serializers.IntegerField()
-
 
 
 class RanksMixin(serializers.Serializer):
@@ -123,6 +124,7 @@ class RanksMixin(serializers.Serializer):
     """
     total_study = serializers.IntegerField()
 
+
 class CollegeRanksResponseSerializer(CollegeSerializer, RanksMixin):
     """
     CollegeRanksResponseSerializer
@@ -130,6 +132,7 @@ class CollegeRanksResponseSerializer(CollegeSerializer, RanksMixin):
     继承自CollegeSerializer, 加入了total_study字段
     """
     pass
+
 
 class LeagueBranchRanksResponseSerializer(LeagueBranchSerializer, RanksMixin):
     """
@@ -153,11 +156,14 @@ class RankInRangeMixin(serializers.Serializer):
     study_min = serializers.IntegerField()
     study_max = serializers.IntegerField()
 
+
 class CollegeRankInRangeRequestSerializer(RankInRangeMixin):
     pass
 
+
 class LeagueRankInRangeRequestSerializer(RankInRangeMixin, CollegeRequestSerializer):
     pass
+
 
 class UserRankInRangeRequestSerializer(RankInRangeMixin, LeagueBranchRequestSerializer):
     pass
