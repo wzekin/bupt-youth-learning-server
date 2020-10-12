@@ -38,17 +38,14 @@ class BaseViewSet(viewsets.GenericViewSet):
 
 class UserViewSetPermission(permissions.BasePermission):
     def has_permission(self, request, view):
-        if request.user.is_anonymous:
-            return False
         # 只有校级管理员可以创建
+        if view.action == 'rank' and request.user.is_anonymous:
+            return False
         if view.action == 'list':
             return request.user.is_superuser
         return True
 
     def has_object_permission(self, request, view, obj):
-        # 只有校级管理员以及学院管理员可以修改
-        if view.action in ('update', 'partial_update', 'retrieve'):
-            return request.user.is_superuser or request.user is obj
         # 只有校级管理员可以删除
         if view.action == 'destory':
             return request.user.is_superuser
@@ -57,7 +54,6 @@ class UserViewSetPermission(permissions.BasePermission):
 
 class UserViewSet(
         mixins.ListModelMixin,
-        mixins.UpdateModelMixin,
         mixins.RetrieveModelMixin,
         mixins.CreateModelMixin,
         BaseViewSet):
@@ -66,6 +62,7 @@ class UserViewSet(
     permission_classes = (UserViewSetPermission,)
     serializer_class_map = {
         'me': UserUpdateSerializer,
+        'update': UserUpdateSerializer,
         'create': UserCreateSerializer,
         'login': UserLoginSerializer,
     }
@@ -103,7 +100,7 @@ class UserViewSet(
             serializer = self.get_serializer(
                 u, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer)
+            serializer.save()
 
             if getattr(u, '_prefetched_objects_cache', None):
                 # If 'prefetch_related' has been applied to a queryset, we need to
@@ -112,6 +109,33 @@ class UserViewSet(
 
             return Response(serializer.data)
         return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        college = serializer.validated_data['college']
+        league = serializer.validated_data['league_branch']
+
+        if instance.college_id != college.id:
+            if not user_has_college_permission(request.user, instance.college_id):
+                return Response(status=status.HTTP_403_FORBIDDEN)
+        elif instance.league_branch_id != league.id:
+            if not user_has_league_permission(request.user, instance.college_id, instance.league_branch_id):
+                return Response(status=status.HTTP_403_FORBIDDEN)
+
+        instance.college_id = college.id
+        instance.league_branch_id = league.id
+
+        instance.save()
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return Response(status=status.HTTP_200_OK)
 
     @action(methods=['GET'], detail=False)
     @swagger_auto_schema(operation_description='获得当前学生的排名，以及学生总人数',

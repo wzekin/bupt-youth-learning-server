@@ -17,6 +17,8 @@ def setUpTestData(cls):
         college=cls.college2, name="test团支部2")
     cls.league_branch3 = LeagueBranch.objects.create(
         college=cls.college2, name="test团支部3")
+    cls.league_branch4 = LeagueBranch.objects.create(
+        college=cls.college1, name="test团支部4")
     cls.user1 = User.objects.create(id=10001, name="test用户", identity=1, code='111',
                                     uid=111, college=cls.college1, league_branch=cls.league_branch1, total_study=2)
     cls.user2 = User.objects.create(id=10003, name="test用户1", identity=1, code='112',
@@ -99,15 +101,30 @@ class SuperUserTests(APITestCase):
         self.superuser.refresh_from_db()
         self.assertEqual(self.superuser.college, None)
 
-    def test_user_me_put(self):
-        url = '/api/user/me/'
+    # def test_user_me_put(self):
+    #     url = '/api/user/me/'
+    #     response: Any = self.client.put(
+    #         url, data={'college': 1}, format='json')
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    #     self.assertEqual(response.data['college'], 2)
+    #     self.superuser.refresh_from_db()
+    #     self.assertEqual(self.superuser.college.id, 1)
+    #     self.assertEqual(self.superuser.league_branch, None)
+
+    def test_user_update_college_400(self):
+        url = '/api/user/10001/'
         response: Any = self.client.put(
-            url, data={'college': 1}, format='json')
+            url, data={'college': 2, 'league_branch': 1}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_user_update_college(self):
+        url = '/api/user/10001/'
+        response: Any = self.client.put(
+            url, data={'college': 2, 'league_branch': 2}, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['college'], 1)
-        self.superuser.refresh_from_db()
-        self.assertEqual(self.superuser.college.id, 1)
-        self.assertEqual(self.superuser.league_branch, None)
+        self.user1.refresh_from_db()
+        self.assertEqual(self.user1.college, self.college2)
+        self.assertEqual(self.user1.league_branch, self.league_branch2)
 
     def test_user_rank(self):
         url = '/api/user/rank/'
@@ -201,27 +218,27 @@ class SuperUserTests(APITestCase):
         response: Any = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        self.assertEqual(response.data['id'], 4)
+        self.assertEqual(response.data['id'], 5)
         self.assertEqual(response.data['name'], data['name'])
-        self.assertEqual(LeagueBranch.objects.count(), 4)
+        self.assertEqual(LeagueBranch.objects.count(), 5)
 
     def test_league_branch_destory(self):
         url = '/api/league_branch/3/'
         response: Any = self.client.delete(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(LeagueBranch.objects.count(), 2)
+        self.assertEqual(LeagueBranch.objects.count(), 3)
 
     def test_league_branch_list(self):
         url = '/api/league_branch/'
         response: Any = self.client.get(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 3)
+        self.assertEqual(len(response.data), 4)
 
     def test_league_branch_rank(self):
         url = '/api/league_branch/rank/?college_id=1&league_branch_id=1'
         response: Any = self.client.get(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, {'rank': 1, 'total': 3})
+        self.assertEqual(response.data, {'rank': 1, 'total': 4})
 
     def test_league_branch_ranks(self):
         url = '/api/league_branch/ranks/?college_id=2'
@@ -269,16 +286,22 @@ class CollegeAdminUserTests(APITestCase):
     def setUp(self) -> None:
         self.client.force_login(user=self.user2)
 
+    def test_user_update_college(self):
+        url = '/api/user/10001/'
+        response: Any = self.client.put(
+            url, data={'college': 2, 'league_branch': 2}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
     def test_user_me_get(self):
         url = '/api/user/me/'
         response: Any = self.client.get(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_user_me_put(self):
-        url = '/api/user/me/'
-        response: Any = self.client.put(
-            url, data={'college': 2}, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    # def test_user_me_put(self):
+    #     url = '/api/user/me/'
+    #     response: Any = self.client.put(
+    #         url, data={'college': 2}, format='json')
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_user_rank(self):
         url = '/api/user/rank/'
@@ -443,16 +466,28 @@ class LeagueBranchUserTests(APITestCase):
     def setUp(self) -> None:
         self.client.force_login(user=self.user2)
 
+    def test_user_update_college(self):
+        url = '/api/user/10001/'
+        response: Any = self.client.put(
+            url, data={'college': 1, 'league_branch': 4}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_user_update_college_1(self):
+        url = '/api/user/10001/'
+        response: Any = self.client.put(
+            url, data={'college': 2, 'league_branch': 2}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     def test_user_me_get(self):
         url = '/api/user/me/'
         response: Any = self.client.get(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_user_me_put(self):
-        url = '/api/user/me/'
-        response: Any = self.client.put(
-            url, data={'college': 2}, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    # def test_user_me_put(self):
+    #     url = '/api/user/me/'
+    #     response: Any = self.client.put(
+    #         url, data={'college': 2}, format='json')
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_user_rank(self):
         url = '/api/user/rank/'
@@ -579,6 +614,12 @@ class CommonUserTests(APITestCase):
     def setUpTestData(cls) -> None:
         setUpTestData(cls)
 
+    def test_user_update_college_1(self):
+        url = '/api/user/10001/'
+        response: Any = self.client.put(
+            url, data={'college': 2, 'league_branch': 2}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
     def setUp(self) -> None:
         self.client.force_login(user=self.user2)
 
@@ -587,11 +628,11 @@ class CommonUserTests(APITestCase):
         response: Any = self.client.get(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-    def test_user_me_put(self):
-        url = '/api/user/me/'
-        response: Any = self.client.put(
-            url, data={'college': 2}, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
+    # def test_user_me_put(self):
+    #     url = '/api/user/me/'
+    #     response: Any = self.client.put(
+    #         url, data={'college': 2}, format='json')
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_user_rank(self):
         url = '/api/user/rank/'
@@ -709,6 +750,12 @@ class AnonymousUserTests(APITestCase):
     def test_user_me_get(self):
         url = '/api/user/me/'
         response: Any = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_user_update_college_1(self):
+        url = '/api/user/10001/'
+        response: Any = self.client.put(
+            url, data={'college': 2, 'league_branch': 2}, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_user_me_put(self):

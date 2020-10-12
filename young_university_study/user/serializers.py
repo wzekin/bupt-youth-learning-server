@@ -74,6 +74,13 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         model = User
         fields = ['college', 'league_branch']
 
+    def validate(self, data):
+        college = data['college']
+        league_branch = data['league_branch']
+        if not LeagueBranch.objects.filter(id=league_branch.id, college=college).exists():
+            raise serializers.ValidationError("学院中没有此团支部")
+        return data
+
 
 class UserLoginSerializer(serializers.ModelSerializer, CodeMixin):
     class Meta:

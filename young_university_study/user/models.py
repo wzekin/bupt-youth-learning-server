@@ -139,17 +139,26 @@ class Permission(models.Model):
 def user_has_college_permission(user, college_id):
     if user.is_anonymous:
         return False
-    return user.is_superuser or user.permissions.filter(permission_type=ContentType.objects.get_for_model(College), permission_id=college_id).exists()
+    return (
+        user.is_superuser
+        or user.permissions.filter(
+            permission_type=ContentType.objects.get_for_model(College),
+            permission_id=college_id
+        ).exists()
+    )
 
 
 def user_has_league_permission(user, college_id, league_id):
     if user.is_anonymous:
         return False
     return (
-        user.is_superuser or
-            user.permissions.filter(permission_type=ContentType.objects.get_for_model(LeagueBranch), permission_id=league_id).exists()
-                or (
-                    user_has_college_permission(user, college_id)
-                    and LeagueBranch.objects.filter(id=league_id, college=college_id).exists()
-                )
-            )
+        user.is_superuser
+        or user.permissions.filter(
+            permission_type=ContentType.objects.get_for_model(
+                LeagueBranch), permission_id=league_id
+        ).exists()
+        or (
+            user_has_college_permission(user, college_id)
+            and LeagueBranch.objects.filter(id=league_id, college=college_id).exists()
+        )
+    )
