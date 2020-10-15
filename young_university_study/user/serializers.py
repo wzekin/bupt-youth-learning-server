@@ -94,6 +94,14 @@ class UserCreateSerializer(serializers.ModelSerializer, CodeMixin):
         fields = ['id', 'name', 'college',
                   'league_branch', 'identity', 'uid', 'code']
 
+    def validate_id(self, value):
+        """
+        检查id是否重复
+        """
+        if User.objects.filter(id=value).exists():
+            raise serializers.ValidationError("该用户已经存在！")
+        return value
+
     def validate_uid(self, value):
         """
         检查uid
