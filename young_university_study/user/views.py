@@ -47,9 +47,7 @@ class UserViewSetPermission(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         # 只有校级管理员可以删除
-        if view.action == 'destory':
-            return request.user.is_superuser
-        return True
+        return user_has_league_permission(request.user, obj.college_id, obj.league_branch_id)
 
 
 class UserViewSet(
@@ -120,9 +118,6 @@ class UserViewSet(
 
         if instance.college_id != college.id:
             if not user_has_college_permission(request.user, instance.college_id):
-                return Response(status=status.HTTP_403_FORBIDDEN)
-        elif instance.league_branch_id != league.id:
-            if not user_has_league_permission(request.user, instance.college_id, instance.league_branch_id):
                 return Response(status=status.HTTP_403_FORBIDDEN)
 
         instance.college_id = college.id
