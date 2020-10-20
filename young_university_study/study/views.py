@@ -120,7 +120,7 @@ class StudyRecordingViewSet(mixins.CreateModelMixin,
                 excel_iter[3] = user.league_branch.name if user.league_branch is not None else ''
                 for r in user.recording.all():
                     if (study_min <= r.study_id_id <= study_max):
-                        excel_iter[r.study_id.id - periods[0].id + 4] = '已完成'
+                        excel_iter[r.study_id_id - periods[0].id + 4] = '已完成'
 
                 excel_data.append(excel_iter)
 
