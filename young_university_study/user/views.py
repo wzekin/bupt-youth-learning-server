@@ -2,10 +2,12 @@ from django.contrib.auth import login
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
+from django.db.models import Q
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.serializers import Serializer
 from rest_framework.status import HTTP_200_OK
 
 from .models import (College, LeagueBranch, Permission, User,
@@ -131,6 +133,23 @@ class UserViewSet(
             instance._prefetched_objects_cache = {}
 
         return Response(status=status.HTTP_200_OK)
+
+    @action(methods=['GET'], detail=False)
+    def search(self, request):
+        name = self.request.query_params.get('name', None)
+        if name is None:
+            return Response(status.HTTP_400_BAD_REQUEST)
+
+        QQ = Q(id=0)
+        for p in self.request.user.permissions:
+            if p.permission_type == ContentType.objects.get_for_model(College):
+                QQ = QQ | Q(college=p.permission_id)
+            elif p.permission_type == ContentType.objects.get_for_model(LeagueBranch):
+                QQ = QQ | Q(leagur_branch=p.permission_id)
+
+        users = User.objects.filter(QQ).filter(name=name)
+        serializer = self.get_serializer(users, many=True)
+        return Response(serializer.data)
 
     @action(methods=['GET'], detail=False)
     @swagger_auto_schema(operation_description='获得当前学生的排名，以及学生总人数',
