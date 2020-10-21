@@ -141,11 +141,12 @@ class UserViewSet(
             return Response(status.HTTP_400_BAD_REQUEST)
 
         QQ = Q(id=0)
-        for p in self.request.user.permissions:
-            if p.permission_type == ContentType.objects.get_for_model(College):
-                QQ = QQ | Q(college=p.permission_id)
-            elif p.permission_type == ContentType.objects.get_for_model(LeagueBranch):
-                QQ = QQ | Q(leagur_branch=p.permission_id)
+        if not self.request.user.is_superuser:
+            for p in self.request.user.permissions:
+                if p.permission_type == ContentType.objects.get_for_model(College):
+                    QQ = QQ | Q(college=p.permission_id)
+                elif p.permission_type == ContentType.objects.get_for_model(LeagueBranch):
+                    QQ = QQ | Q(leagur_branch=p.permission_id)
 
         users = User.objects.filter(QQ).filter(name=name)
         serializer = self.get_serializer(users, many=True)
