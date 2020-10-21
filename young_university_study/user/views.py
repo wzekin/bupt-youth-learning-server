@@ -151,7 +151,8 @@ class UserViewSet(
 
             users = users.filter(QQ)
 
-        users = users.filter(name=name)
+        users = users.filter(name=name).select_related("college").select_related(
+            "league_branch").prefetch_related("permissions")
         serializer = self.get_serializer(users, many=True)
         return Response(serializer.data)
 
