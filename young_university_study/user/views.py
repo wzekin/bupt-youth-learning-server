@@ -7,7 +7,6 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.serializers import Serializer
 from rest_framework.status import HTTP_200_OK
 
 from .models import (College, LeagueBranch, Permission, User,
@@ -115,6 +114,7 @@ class UserViewSet(
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
+        name = serializer.validated_data.get('name', None)
         college = serializer.validated_data['college']
         league = serializer.validated_data['league_branch']
 
@@ -124,6 +124,8 @@ class UserViewSet(
 
         instance.college_id = college.id
         instance.league_branch_id = league.id
+        if name is not None:
+            instance.name = name
 
         instance.save()
 

@@ -70,9 +70,12 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     """
     UserUpdateSerializer 用户更新请求
     """
+
+    name = serializers.CharField(required=False)
+
     class Meta:
         model = User
-        fields = ['college', 'league_branch']
+        fields = ['name', 'college', 'league_branch']
 
     def validate(self, data):
         college = data['college']
