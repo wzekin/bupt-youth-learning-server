@@ -146,7 +146,7 @@ class UserViewSet(
         users = User.objects.all()
         if not self.request.user.is_superuser:
             QQ = Q(id=0)
-            for p in self.request.user.permissions:
+            for p in self.request.user.permissions.all():
                 if p.permission_type == ContentType.objects.get_for_model(College):
                     QQ = QQ | Q(college=p.permission_id)
                 elif p.permission_type == ContentType.objects.get_for_model(LeagueBranch):
