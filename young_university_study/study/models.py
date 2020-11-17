@@ -11,6 +11,8 @@ class StudyPeriod(models.Model):
     name = models.CharField("青年大学习期数名称", max_length=50)
     url = models.CharField("青年大学习视频链接", max_length=100)
 
+    time = models.IntegerField("青年大学习视频秒数")
+
     created = models.DateTimeField(auto_now_add=True)
 
 
