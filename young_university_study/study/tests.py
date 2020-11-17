@@ -12,9 +12,9 @@ class StudyPeriodTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.study_period1 = StudyPeriod.objects.create(
-            season=1, period=1, name='test1', url='url')
+            season=1, period=1, name='test1', url='url', time=300)
         cls.study_period2 = StudyPeriod.objects.create(
-            season=1, period=2, name='test2', url='url')
+            season=1, period=2, name='test2', url='url', time=300)
         cls.user1 = User.objects.create(
             id=10001, name="test用户", identity=1, code='111', uid=111, total_study=2)
         cls.superuser = User.objects.create(
@@ -25,7 +25,8 @@ class StudyPeriodTests(APITestCase):
 
     def test_period_create(self):
         url = '/api/study_period/'
-        data = {'season': 1, 'period': 3, 'name': 'test3', 'url': 'url'}
+        data = {'season': 1, 'period': 3,
+                'name': 'test3', 'url': 'url', 'time': 300}
         response: Any = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(StudyPeriod.objects.count(), 3)
@@ -53,9 +54,9 @@ class StudyPeriodCommonUserTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.study_period1 = StudyPeriod.objects.create(
-            season=1, period=1, name='test1', url='url')
+            season=1, period=1, name='test1', url='url', time=300)
         cls.study_period2 = StudyPeriod.objects.create(
-            season=1, period=2, name='test2', url='url')
+            season=1, period=2, name='test2', url='url', time=300)
         cls.user1 = User.objects.create(
             id=10001, name="test用户", identity=1, code='111', uid=111, total_study=2)
         cls.superuser = User.objects.create(
@@ -90,17 +91,17 @@ class StudyRecordingTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
         cls.study_period1 = StudyPeriod.objects.create(
-            season=1, period=1, name='test1', url='url')
+            season=1, period=1, name='test1', url='url', time=300)
         cls.study_period2 = StudyPeriod.objects.create(
-            season=1, period=2, name='test2', url='url')
+            season=1, period=2, name='test2', url='url', time=300)
         cls.study_period3 = StudyPeriod.objects.create(
-            season=1, period=2, name='test2', url='url')
+            season=1, period=2, name='test2', url='url', time=300)
         cls.study_period4 = StudyPeriod.objects.create(
-            season=1, period=2, name='test2', url='url')
+            season=1, period=2, name='test2', url='url', time=300)
         cls.study_period5 = StudyPeriod.objects.create(
-            season=1, period=2, name='test2', url='url')
+            season=1, period=2, name='test2', url='url', time=300)
         cls.study_period6 = StudyPeriod.objects.create(
-            season=1, period=2, name='test2', url='url')
+            season=1, period=2, name='test2', url='url', time=300)
         cls.user1 = User.objects.create(
             id=10001, name="test用户", identity=1, code='111', uid=111, total_study=2)
         cls.superuser = User.objects.create(

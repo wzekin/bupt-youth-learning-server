@@ -26,9 +26,9 @@ def setUpTestData(cls):
     cls.user3 = User.objects.create(id=10004, name="test用户2", identity=1, code='113',
                                     uid=113, college=cls.college2, league_branch=cls.league_branch2, total_study=3)
     cls.study_period1 = StudyPeriod.objects.create(
-        season=1, period=1, name='test1', url='url')
+        season=1, period=1, name='test1', url='url', time=300)
     cls.study_period2 = StudyPeriod.objects.create(
-        season=1, period=2, name='test2', url='url')
+        season=1, period=2, name='test2', url='url', time=300)
     cls.superuser = User.objects.create(
         id=10002, name="super用户", identity=1, code='1111', uid=1111, is_superuser=True, total_study=4)
 
