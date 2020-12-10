@@ -15,6 +15,9 @@ class StudyPeriod(models.Model):
 
     created = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return "青年大学习第%d季第%d期" % (self.season, self.period)
+
 
 class StudyRecording(models.Model):
     """
