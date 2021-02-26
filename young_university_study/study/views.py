@@ -6,6 +6,7 @@ import django_excel as excel
 # from .grpc import api_pb2_grpc, api_pb2
 import jwt
 from django.conf import settings
+from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
@@ -138,7 +139,9 @@ class StudyRecordingViewSet(
                 book, "xlsx", file_name="main.xlsx", sheet_name="main"
             )
 
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
+        user: User = User.objects.select_for_update().get(pk=request.user.id)
         lastst_study = StudyPeriod.objects.latest("id")
         recordings = self.get_queryset().order_by("-id")
         if len(recordings) == 0:
@@ -151,7 +154,7 @@ class StudyRecordingViewSet(
             score = min(index, 5)
 
         recording = StudyRecording.objects.create(
-            user_id=request.user,
+            user_id=user,
             study_id=lastst_study,
             score=score,
             detail="连续学习%d期" % index,
@@ -159,10 +162,10 @@ class StudyRecordingViewSet(
 
         # self.send_grpc(recording)
 
-        request.user.total_score += score
-        request.user.continue_study = index
-        request.user.total_study += 1
-        request.user.save()
+        user.total_score += score
+        user.continue_study = index
+        user.total_study += 1
+        user.save()
         serializer = self.get_serializer(recording)
         headers = self.get_success_headers(serializer.data)
         return Response(

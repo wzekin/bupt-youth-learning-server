@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "young_university_study.user",
     "young_university_study.study",
+    "young_university_study.store",
 ]
 
 MIDDLEWARE = [
