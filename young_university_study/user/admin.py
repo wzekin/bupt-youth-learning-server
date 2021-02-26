@@ -1,26 +1,26 @@
 from django.contrib import admin
 
-from .models import *
+from .models import College, LeagueBranch, Permission, User
 
 
 class UserAdmin(admin.ModelAdmin):
-    ordering = ['last_login']
-    search_fields = ['id']
+    ordering = ["last_login"]
+    search_fields = ["id"]
     autocomplete_fields = ["college", "league_branch"]
 
 
 class CollegeAdmin(admin.ModelAdmin):
-    ordering = ['name']
-    search_fields = ['name']
+    ordering = ["name"]
+    search_fields = ["name"]
 
 
 class LeagueBranchAdmin(admin.ModelAdmin):
-    ordering = ['name']
-    search_fields = ['name']
+    ordering = ["name"]
+    search_fields = ["name"]
 
 
 class PermissionAdmin(admin.ModelAdmin):
-    ordering = ['id']
+    ordering = ["id"]
     autocomplete_fields = ["user_id"]
 
 

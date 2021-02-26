@@ -139,7 +139,7 @@ Vary: Accept
 * method: GET
 * auth: 所有用户
 * input: null
-* output: 
+* output:
 ``` json
 HTTP 200 OK
 Allow: GET, POST, HEAD, OPTIONS
@@ -160,7 +160,7 @@ Vary: Accept
 * url: /league_branch/
 * method: POST
 * auth: 校级管理员(is_superuser = True) 以及所对应学院的管理员
-* input: 
+* input:
 ``` json
 {
     "name": "xxx",
@@ -187,7 +187,7 @@ Vary: Accept
 * method: DELETE
 * auth: 校级管理员(is_superuser = True) 以及所对应学院的管理员
 * input: null
-* output: 
+* output:
 ``` json
 HTTP 204 No Content
 Allow: DELETE, OPTIONS

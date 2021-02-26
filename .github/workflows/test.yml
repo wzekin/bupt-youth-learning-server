@@ -1,0 +1,23 @@
+name: TestDjango
+on: [push, pull_request]
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+      - name: Run image
+        uses: abatilo/actions-poetry@v2.0.0
+        with:
+          poetry-version: 1.1.2
+      - name: Install Apt dep
+        run: sudo apt install libldap2-dev libpq-dev libsasl2-dev libssl-dev
+      - name: Install dep
+        run: poetry install
+      - name: Run Test
+        run: poetry run python manage.py test
