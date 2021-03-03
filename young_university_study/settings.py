@@ -9,21 +9,7 @@ https://docs.djangoproject.com/en/3.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.1/ref/settings/
 """
-# import os
 from pathlib import Path
-
-# import sentry_sdk
-# from sentry_sdk.integrations.django import DjangoIntegration
-
-# sentry_sdk.init(
-# dsn="https://a280ca4cd25c490fb33d6402cbb726e8@o469914.ingest.sentry.io/5499982",
-# integrations=[DjangoIntegration()],
-# traces_sample_rate=1.0,
-# # If you wish to associate users to errors (assuming you are using
-# # django.contrib.auth) you may enable sending PII data.
-# send_default_pii=True,
-# )
-
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
@@ -37,6 +23,20 @@ SECRET_KEY = "#nj)x$&ejgg*xmj**n$8t(0hz-sxt8q-*$z6go2q_q8@st7d+t"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+if not DEBUG:
+    import sentry_sdk
+    from sentry_sdk.integrations.django import DjangoIntegration
+
+    sentry_sdk.init(
+        dsn="https://a280ca4cd25c490fb33d6402cbb726e8@o469914.ingest.sentry.io/5499982",
+        integrations=[DjangoIntegration()],
+        traces_sample_rate=1.0,
+        # If you wish to associate users to errors (assuming you are using
+        # django.contrib.auth) you may enable sending PII data.
+        send_default_pii=True,
+    )
+
 
 ALLOWED_HOSTS = ["123.56.70.65", "127.0.0.1", "localhost"]
 
@@ -147,5 +147,6 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = "./static"
+STATICFILES_DIRS = ["./media"]
 
 AUTH_USER_MODEL = "user.User"

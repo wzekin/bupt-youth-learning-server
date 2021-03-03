@@ -10,7 +10,7 @@ class Commodity(models.Model):
     id = models.AutoField(primary_key=True)
     title = models.CharField("商品标题", max_length=50)
     describe = models.TextField("商品描述")
-    picture = models.ImageField("商品图片", null=True, upload_to="commodity")
+    picture = models.CharField("商品图片", null=True, max_length=100)
 
     cost = models.IntegerField("商品需要花费的积分")
 

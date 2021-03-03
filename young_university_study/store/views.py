@@ -1,5 +1,11 @@
+import os
+
+import nanoid
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
+from django.http import JsonResponse
+from django.http.response import HttpResponseForbidden
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
@@ -88,3 +94,34 @@ class PurchaseViewSet(
         return Response(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
+
+
+def upload_image(request):
+    user = request.user
+    if not (
+        user.is_authenticated
+        and (
+            # 只有超级管理员和院管理员可以创建
+            user.is_superuser
+            or user.permissions.filter(
+                permission_type=ContentType.objects.get_for_model(College),
+            ).exists()
+        )
+    ):
+        return HttpResponseForbidden()
+    data = {}
+    for key, file in request.FILES.items():
+        if not file.content_type.startswith("image"):
+            data[key] = u"请输入正确的格式！"
+        elif file.size > 1024 * 1024:
+            data[key] = u"图片大小要求1M以内"
+        else:
+            filename = nanoid.generate() + "_" + file.name
+            with open(
+                os.path.join(settings.BASE_DIR, "media", "store", filename),
+                "wb",
+            ) as f:
+                f.write(file.read())
+            data[key] = os.path.join("static", "store", filename)
+
+    return JsonResponse(data)

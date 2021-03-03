@@ -17,10 +17,12 @@ from django.contrib import admin
 from django.urls import include, path
 
 from .store.urls import urlpatterns as store_url
+from .store.views import upload_image
 from .study.urls import urlpatterns as study_url
 from .user.urls import urlpatterns as user_url
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/", include((user_url + study_url + store_url))),
+    path("api/image/", upload_image),
 ]
