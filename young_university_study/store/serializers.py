@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from ..user.models import User, user_has_college_permission
 from .models import Commodity, PurchaseRecord
 
 
@@ -18,12 +19,26 @@ class CommoditySerializers(serializers.ModelSerializer):
             "updated",
             "created",
         ]
-        read_only_fields = ["id", "owner", "updated", "created", "exchanged"]
+        read_only_fields = ["id", "updated", "created", "exchanged"]
 
     def create(self, validated_data):
-        return Commodity.objects.create(
-            owner=self.context["request"].user, **validated_data
-        )
+        return Commodity.objects.create(**validated_data)
+
+    def validate(self, data):
+        """
+        检查是否有权限创建此商品
+        """
+        # 部分更新时不进行校验
+        if self.partial:
+            return data
+        user: User = self.context["request"].user
+        if "owner" not in data and not user.is_superuser:
+            raise serializers.ValidationError("只有superuser能创建校级商品")
+        elif "owner" in data and not user_has_college_permission(
+            user, data["owner"].id
+        ):
+            raise serializers.ValidationError("没有创建此商品的权限")
+        return data
 
 
 class PurchaseRecordSerializers(serializers.ModelSerializer):

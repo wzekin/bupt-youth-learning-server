@@ -4,14 +4,15 @@ import nanoid
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
+from django.db.models import Q
 from django.http import JsonResponse
 from django.http.response import HttpResponseForbidden
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 from rest_framework.response import Response
-from young_university_study.user.models import College, User
 
+from ..user.models import College, User, user_has_college_permission
 from .models import Commodity, PurchaseRecord
 from .serializers import CommoditySerializers, PurchaseRecordSerializers
 
@@ -37,7 +38,9 @@ class CommodityViewSetPermission(permissions.BasePermission):
         # 超级管理员和修改和删除
         user: User = request.user
         return user.is_authenticated and (
-            request.method in SAFE_METHODS or user.is_superuser or obj.owner == user
+            request.method in SAFE_METHODS
+            or user.is_superuser
+            or (obj.owner and user_has_college_permission(user, obj.owner.id))
         )
 
 
@@ -53,10 +56,31 @@ class CommodityViewSet(
     serializer_class = CommoditySerializers
     permission_classes = [CommodityViewSetPermission]
 
+    def list(self, request, *args, **kwargs):
+        user: User = request.user
+        queryset = Commodity.available_objects.filter(
+            Q(owner__isnull=True) | Q(owner=user.college)
+        )
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     # 展示由自己创建的所有的商品
     @action(methods=["GET"], detail=False)
     def my_commodity(self, request):
-        queryset = Commodity.all_objects.filter(owner=request.user)
+        college = request.query_params.get("college", None)
+        user: User = request.user
+        if (not college and not user.is_superuser) or not user_has_college_permission(
+            user, college
+        ):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        queryset = Commodity.all_objects.filter(owner=college)
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -99,9 +123,9 @@ class PurchaseViewSet(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
 
-    # @action(methods=["post"], detail=True)
-    # def exchange(self, request, pk=None):
-    # pass
+    @action(methods=["post"], detail=True)
+    def exchange(self, request, pk=None):
+        pass
 
 
 def upload_image(request):

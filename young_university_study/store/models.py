@@ -1,6 +1,6 @@
 from django.db import models
 from model_utils.models import SoftDeletableModel
-from young_university_study.user.models import User
+from young_university_study.user.models import College, User
 
 
 class Commodity(SoftDeletableModel):
@@ -18,7 +18,7 @@ class Commodity(SoftDeletableModel):
     exchanged = models.IntegerField("已经兑换了的人数", default=0)
     limit = models.IntegerField("商品限额，0为不限制", default=0)
 
-    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    owner = models.ForeignKey(College, on_delete=models.CASCADE, null=True)
 
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)

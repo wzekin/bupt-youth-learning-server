@@ -74,7 +74,6 @@ def setUpTestData(cls):
         cost=5,
         exchanged=0,
         limit=0,
-        owner=cls.superuser,
     )
 
     cls.commodity2 = Commodity.objects.create(
@@ -85,7 +84,7 @@ def setUpTestData(cls):
         cost=5,
         exchanged=0,
         limit=6,
-        owner=cls.user1,
+        owner=cls.college1,
     )
 
     cls.commodity2 = Commodity.objects.create(
@@ -96,7 +95,7 @@ def setUpTestData(cls):
         cost=5,
         exchanged=6,
         limit=6,
-        owner=cls.user2,
+        owner=cls.college2,
     )
 
     Permission.objects.create(
@@ -124,14 +123,22 @@ class SuperUserTests(APITestCase):
         url = "/api/commodity/"
         response: Any = self.client.get(url, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 3)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], 1)
 
-    def test_list_my_commdity(self):
-        url = "/api/commodity/my_commodity/"
+    def test_list_my_commdity_1(self):
+        url = "/api/commodity/my_commodity/?college=1"
         response: Any = self.client.get(url, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["id"], 1)
+        self.assertEqual(response.data[0]["id"], 2)
+
+    def test_list_my_commdity_2(self):
+        url = "/api/commodity/my_commodity/?college=2"
+        response: Any = self.client.get(url, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], 3)
 
     def test_create_commdity(self):
         url = "/api/commodity/"
@@ -191,20 +198,37 @@ class CollegeManagerUserTests(APITestCase):
         url = "/api/commodity/"
         response: Any = self.client.get(url, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 3)
+        self.assertEqual(len(response.data), 2)
 
-    def test_list_my_commdity(self):
-        url = "/api/commodity/my_commodity/"
+    def test_list_my_commdity_1(self):
+        url = "/api/commodity/my_commodity/?college=1"
         response: Any = self.client.get(url, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]["id"], 2)
+
+    def test_list_my_commdity_2(self):
+        url = "/api/commodity/my_commodity/?college=2"
+        response: Any = self.client.get(url, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_create_commdity(self):
         url = "/api/commodity/"
         data = {
             "title": "created",
             "describe": "描述3",
+            "cost": 5,
+            "limit": 6,
+        }
+        response: Any = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_commdity_1(self):
+        url = "/api/commodity/"
+        data = {
+            "title": "created",
+            "describe": "描述3",
+            "owner": 1,
             "cost": 5,
             "limit": 6,
         }
@@ -253,13 +277,17 @@ class CommonUserTests(APITestCase):
         url = "/api/commodity/"
         response: Any = self.client.get(url, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 3)
+        self.assertEqual(len(response.data), 2)
 
-    def test_list_my_commdity(self):
-        url = "/api/commodity/my_commodity/"
+    def test_list_my_commdity_1(self):
+        url = "/api/commodity/my_commodity/?college=1"
         response: Any = self.client.get(url, format="json")
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 0)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_list_my_commdity_2(self):
+        url = "/api/commodity/my_commodity/?college=2"
+        response: Any = self.client.get(url, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_create_commdity(self):
         url = "/api/commodity/"
