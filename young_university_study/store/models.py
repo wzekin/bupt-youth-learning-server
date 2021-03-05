@@ -1,8 +1,9 @@
 from django.db import models
+from model_utils.models import SoftDeletableModel
 from young_university_study.user.models import User
 
 
-class Commodity(models.Model):
+class Commodity(SoftDeletableModel):
     """
     商品类，用于存储商品
     """
@@ -42,6 +43,8 @@ class PurchaseRecord(models.Model):
     help_text = models.CharField(max_length=100)
 
     cost = models.IntegerField("用户购买商品花费的积分")
+
+    is_exchanged = models.BooleanField("是否已经兑换", default=False)
 
     created = models.DateTimeField(auto_now_add=True)
 

@@ -140,6 +140,17 @@ xls = ["pyexcel-xls (>=0.4.0)"]
 xlsx = ["pyexcel-xlsx (>=0.4.0)"]
 
 [[package]]
+name = "django-model-utils"
+version = "4.1.1"
+description = "Django model mixins and utilities"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+Django = ">=2.0.1"
+
+[[package]]
 name = "django-simpleui"
 version = "2021.3"
 description = "django admin theme 后台模板"
@@ -614,7 +625,7 @@ testing = ["coverage (>=4)", "coverage-enable-subprocess (>=1)", "flaky (>=3)", 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "e13b693a6cc5fa6645d7b409c4a1b9eabbfd2911f9bd964d00d1dc89578a7ca3"
+content-hash = "8c4b2839583643e24e4e9c10fcdffb39381a6ad956bb55e3f777075190adda4b"
 
 [metadata.files]
 appdirs = [
@@ -663,6 +674,10 @@ django = [
 django-excel = [
     {file = "django-excel-0.0.10.tar.gz", hash = "sha256:81cd3bce8007009c30205f7085a97f2908557014900775577cab0b9a770c2bad"},
     {file = "django_excel-0.0.10-py2.py3-none-any.whl", hash = "sha256:f0297202fc460eb74657f8a9d4473921050fbe2e297765c174be9cf33d1195c7"},
+]
+django-model-utils = [
+    {file = "django-model-utils-4.1.1.tar.gz", hash = "sha256:eb5dd05ef7d7ce6bc79cae54ea7c4a221f6f81e2aad7722933aee66489e7264b"},
+    {file = "django_model_utils-4.1.1-py3-none-any.whl", hash = "sha256:ef7c440024e797796a3811432abdd2be8b5225ae64ef346f8bfc6de7d8e5d73c"},
 ]
 django-simpleui = [
     {file = "django-simpleui-2021.3.tar.gz", hash = "sha256:6daa6717cc1b74bc3f00206bd4b45c51c79afa9e40a7190d198bce990b9cda96"},

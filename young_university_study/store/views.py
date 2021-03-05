@@ -21,7 +21,7 @@ class CommodityViewSetPermission(permissions.BasePermission):
         user = request.user
         return bool(
             # 先校验登录态
-            request.user.is_authenticated
+            user.is_authenticated
             and (
                 # 如果是查找，直接通过
                 request.method in SAFE_METHODS
@@ -36,23 +36,27 @@ class CommodityViewSetPermission(permissions.BasePermission):
     def has_object_permission(self, request, view, obj: Commodity):
         # 超级管理员和修改和删除
         user: User = request.user
-        return user.is_superuser or obj.owner == user
+        return user.is_authenticated and (
+            request.method in SAFE_METHODS or user.is_superuser or obj.owner == user
+        )
 
 
 class CommodityViewSet(
     viewsets.GenericViewSet,
+    mixins.RetrieveModelMixin,
     mixins.ListModelMixin,
     mixins.CreateModelMixin,
     mixins.UpdateModelMixin,
+    mixins.DestroyModelMixin,
 ):
-    queryset = Commodity.objects.all()
+    queryset = Commodity.available_objects.all()
     serializer_class = CommoditySerializers
     permission_classes = [CommodityViewSetPermission]
 
     # 展示由自己创建的所有的商品
     @action(methods=["GET"], detail=False)
     def my_commodity(self, request):
-        queryset = self.get_queryset().filter(owner=request.user)
+        queryset = Commodity.all_objects.filter(owner=request.user)
 
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -94,6 +98,10 @@ class PurchaseViewSet(
         return Response(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
+
+    # @action(methods=["post"], detail=True)
+    # def exchange(self, request, pk=None):
+    # pass
 
 
 def upload_image(request):
