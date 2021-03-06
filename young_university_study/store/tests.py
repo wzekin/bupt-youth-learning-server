@@ -71,6 +71,7 @@ def setUpTestData(cls):
         id=1,
         title="商品1",
         describe="描述1",
+        location="test location",
         picture="假装有图片",
         cost=5,
         exchanged=0,
@@ -88,10 +89,12 @@ def setUpTestData(cls):
         limit=6,
         deadline=timezone.now(),
         owner=cls.college1,
+        location="test location",
     )
 
     cls.commodity2 = Commodity.objects.create(
         id=3,
+        location="test location",
         title="商品3 已经兑换完毕",
         describe="描述3",
         picture="假装有图片",
@@ -140,6 +143,7 @@ class SuperUserTests(APITestCase):
         url = "/api/commodity/"
         data = {
             "title": "created",
+            "location": "test location",
             "describe": "描述3",
             "cost": 5,
             "limit": 6,
@@ -209,6 +213,7 @@ class CollegeManagerUserTests(APITestCase):
         data = {
             "title": "created",
             "describe": "描述3",
+            "location": "test location",
             "cost": 5,
             "limit": 6,
             "deadline": timezone.now(),
@@ -221,6 +226,7 @@ class CollegeManagerUserTests(APITestCase):
         data = {
             "title": "created",
             "describe": "描述3",
+            "location": "test location",
             "owner": 1,
             "cost": 5,
             "limit": 6,
@@ -283,6 +289,7 @@ class CommonUserTests(APITestCase):
         url = "/api/commodity/"
         data = {
             "title": "created",
+            "location": "test location",
             "describe": "描述3",
             "cost": 5,
             "limit": 6,

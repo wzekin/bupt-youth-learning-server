@@ -14,6 +14,7 @@ class Commodity(SoftDeletableModel):
     title = models.CharField("商品标题", max_length=50)
     describe = models.TextField("商品描述")
     picture = models.CharField("商品图片", null=True, max_length=100)
+    location = models.CharField("兑换地点", max_length=50)
 
     cost = models.IntegerField("商品需要花费的积分")
 
