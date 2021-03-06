@@ -57,13 +57,22 @@ class CommoditySerializersForPurchase(serializers.ModelSerializer):
         ]
 
 
+class UserSerializersForPurchase(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "name",
+        ]
+
+
 class PurchaseRecordSerializers(serializers.ModelSerializer):
     code = fields.CharField(source="get_code", read_only=True)
 
     class Meta:
         model = PurchaseRecord
-        fields = ["commodity", "cost", "help_text", "created", "code"]
-        read_only_fields = ["cost", "help_text", "created", "code"]
+        fields = ["commodity", "cost", "help_text", "created", "code", "customer"]
+        read_only_fields = ["cost", "help_text", "created", "code", "customer"]
 
     def create(self, validated_data):
         commodity: Commodity = validated_data["commodity"]
@@ -77,3 +86,4 @@ class PurchaseRecordSerializers(serializers.ModelSerializer):
 
 class PurchaseRecordListSerializers(PurchaseRecordSerializers):
     commodity = CommoditySerializersForPurchase()
+    customer = UserSerializersForPurchase()
