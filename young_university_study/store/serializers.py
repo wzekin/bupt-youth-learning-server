@@ -12,6 +12,7 @@ class CommoditySerializers(serializers.ModelSerializer):
             "title",
             "describe",
             "cost",
+            "deadline",
             "exchanged",
             "picture",
             "limit",

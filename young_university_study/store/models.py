@@ -22,6 +22,8 @@ class Commodity(SoftDeletableModel):
 
     owner = models.ForeignKey(College, on_delete=models.CASCADE, null=True)
 
+    deadline = models.DateTimeField("截止日期")
+
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
 

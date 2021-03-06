@@ -1,6 +1,7 @@
 from typing import Any
 
 from django.contrib.contenttypes.models import ContentType
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -74,6 +75,7 @@ def setUpTestData(cls):
         cost=5,
         exchanged=0,
         limit=0,
+        deadline=timezone.now(),
     )
 
     cls.commodity2 = Commodity.objects.create(
@@ -84,6 +86,7 @@ def setUpTestData(cls):
         cost=5,
         exchanged=0,
         limit=6,
+        deadline=timezone.now(),
         owner=cls.college1,
     )
 
@@ -96,6 +99,7 @@ def setUpTestData(cls):
         exchanged=6,
         limit=6,
         owner=cls.college2,
+        deadline=timezone.now(),
     )
 
     Permission.objects.create(
@@ -139,6 +143,7 @@ class SuperUserTests(APITestCase):
             "describe": "描述3",
             "cost": 5,
             "limit": 6,
+            "deadline": timezone.now(),
         }
         response: Any = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -206,6 +211,7 @@ class CollegeManagerUserTests(APITestCase):
             "describe": "描述3",
             "cost": 5,
             "limit": 6,
+            "deadline": timezone.now(),
         }
         response: Any = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -218,6 +224,7 @@ class CollegeManagerUserTests(APITestCase):
             "owner": 1,
             "cost": 5,
             "limit": 6,
+            "deadline": timezone.now(),
         }
         response: Any = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
