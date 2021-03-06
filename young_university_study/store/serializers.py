@@ -42,12 +42,12 @@ class CommoditySerializers(serializers.ModelSerializer):
 
 
 class PurchaseRecordSerializers(serializers.ModelSerializer):
-    code = fields.CharField(scoure="get_code")
+    code = fields.CharField(source="get_code", read_only=True)
 
     class Meta:
         model = PurchaseRecord
-        fields = ["commodity", "cost", "help_text", "created"]
-        read_only_fields = ["cost", "help_text", "created"]
+        fields = ["commodity", "cost", "help_text", "created", "code"]
+        read_only_fields = ["cost", "help_text", "created", "code"]
 
     def get_code(self):
         pass
