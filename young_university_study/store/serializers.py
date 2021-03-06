@@ -43,6 +43,20 @@ class CommoditySerializers(serializers.ModelSerializer):
         return data
 
 
+class CommoditySerializersForPurchase(serializers.ModelSerializer):
+    class Meta:
+        model = Commodity
+        fields = [
+            "id",
+            "title",
+            "deadline",
+            "location",
+            "picture",
+            "updated",
+            "created",
+        ]
+
+
 class PurchaseRecordSerializers(serializers.ModelSerializer):
     code = fields.CharField(source="get_code", read_only=True)
 
@@ -50,9 +64,6 @@ class PurchaseRecordSerializers(serializers.ModelSerializer):
         model = PurchaseRecord
         fields = ["commodity", "cost", "help_text", "created", "code"]
         read_only_fields = ["cost", "help_text", "created", "code"]
-
-    def get_code(self):
-        pass
 
     def create(self, validated_data):
         commodity: Commodity = validated_data["commodity"]
@@ -62,3 +73,7 @@ class PurchaseRecordSerializers(serializers.ModelSerializer):
             cost=commodity.cost,
             **validated_data,
         )
+
+
+class PurchaseRecordListSerializers(PurchaseRecordSerializers):
+    commodity = CommoditySerializersForPurchase()

@@ -1,12 +1,14 @@
 from typing import Any
 
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
+from hashids import Hashids
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from ..user.models import College, LeagueBranch, Permission, User
-from .models import Commodity
+from .models import Commodity, PurchaseRecord
 
 
 def setUpTestData(cls):
@@ -115,6 +117,10 @@ def setUpTestData(cls):
         user_id=cls.user2,
         permission_type=ContentType.objects.get_for_model(College),
         permission_id=cls.college1.id,
+    )
+
+    PurchaseRecord.objects.create(
+        id=1, commodity=cls.commodity2, customer=cls.user3, cost=6
     )
 
 
@@ -329,3 +335,11 @@ class CommonUserTests(APITestCase):
         data = {"commodity": 3}
         response: Any = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_purchase(self):
+        hashids = Hashids(salt=settings.SECRET_KEY, min_length=6)
+        code = hashids.encode(1)
+        url = "/api/purchase/%s/" % code
+        response: Any = self.client.get(url, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["code"], code)

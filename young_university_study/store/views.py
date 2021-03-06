@@ -15,7 +15,11 @@ from rest_framework.response import Response
 
 from ..user.models import College, User, user_has_college_permission
 from .models import Commodity, PurchaseRecord
-from .serializers import CommoditySerializers, PurchaseRecordSerializers
+from .serializers import (
+    CommoditySerializers,
+    PurchaseRecordListSerializers,
+    PurchaseRecordSerializers,
+)
 
 
 class CommodityViewSetPermission(permissions.BasePermission):
@@ -53,7 +57,7 @@ class CommodityViewSet(
     mixins.UpdateModelMixin,
     mixins.DestroyModelMixin,
 ):
-    queryset = Commodity.available_objects.all()
+    queryset = Commodity.all_objects.all()
     serializer_class = CommoditySerializers
     permission_classes = [CommodityViewSetPermission]
 
@@ -105,8 +109,13 @@ class PurchaseViewSet(
     mixins.RetrieveModelMixin,
 ):
     queryset = PurchaseRecord.objects.all()
-    serializer_class = PurchaseRecordSerializers
     permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return PurchaseRecordSerializers
+        else:
+            return PurchaseRecordListSerializers
 
     def get_queryset(self):
         return self.queryset.filter(customer=self.request.user)
@@ -135,13 +144,13 @@ class PurchaseViewSet(
 
     def retrieve(self, request, *args, **kwargs):
         hashids = Hashids(salt=settings.SECRET_KEY, min_length=6)
-        self.kwargs["pk"] = hashids.encode(self.kwargs["pk"])[0]
+        self.kwargs["pk"] = hashids.decode(self.kwargs["pk"])[0]
         return super().retrieve(request, *args, **kwargs)
 
     @action(methods=["post"], detail=True)
     def exchange(self, request):
         hashids = Hashids(salt=settings.SECRET_KEY, min_length=6)
-        self.kwargs["pk"] = hashids.encode(self.kwargs["pk"])[0]
+        self.kwargs["pk"] = hashids.decode(self.kwargs["pk"])[0]
         record = self.get_object()
         record.is_exchanged = True
         record.save()
