@@ -9,7 +9,7 @@ from django.http import JsonResponse
 from django.http.response import HttpResponseForbidden
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
+from rest_framework.permissions import SAFE_METHODS
 from rest_framework.response import Response
 
 from ..user.models import College, User, user_has_college_permission
@@ -102,6 +102,28 @@ class CommodityViewSet(
         return Response(serializer.data)
 
 
+class PurchaseViewSetPermission(permissions.BasePermission):
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(
+            # 先校验登录态
+            user.is_authenticated
+        )
+
+    def has_object_permission(self, request, view, obj: PurchaseRecord):
+        # 超级管理员和修改和删除
+        user: User = request.user
+        return user.is_authenticated and (
+            request.method in SAFE_METHODS
+            or user.is_superuser
+            or obj.customer == user
+            or (
+                obj.commodity.owner
+                and user_has_college_permission(user, obj.commodity.owner.id)
+            )
+        )
+
+
 class PurchaseViewSet(
     viewsets.GenericViewSet,
     mixins.CreateModelMixin,
@@ -109,7 +131,7 @@ class PurchaseViewSet(
     mixins.RetrieveModelMixin,
 ):
     queryset = PurchaseRecord.objects.all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [PurchaseViewSetPermission]
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -143,12 +165,18 @@ class PurchaseViewSet(
         )
 
     def retrieve(self, request, *args, **kwargs):
-        self.kwargs["pk"] = get_Hashids().decode(self.kwargs["pk"])[0]
+        try:
+            self.kwargs["pk"] = get_Hashids().decode(self.kwargs["pk"])[0]
+        except Exception:
+            return Response(status=status.HTTP_404_NOT_FOUND)
         return super().retrieve(request, *args, **kwargs)
 
     @action(methods=["post"], detail=True)
     def exchange(self, request):
-        self.kwargs["pk"] = get_Hashids().decode(self.kwargs["pk"])[0]
+        try:
+            self.kwargs["pk"] = get_Hashids().decode(self.kwargs["pk"])[0]
+        except Exception:
+            return Response(status=status.HTTP_404_NOT_FOUND)
         record = self.get_object()
         record.is_exchanged = True
         record.save()

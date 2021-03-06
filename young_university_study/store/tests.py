@@ -341,3 +341,8 @@ class CommonUserTests(APITestCase):
         response: Any = self.client.get(url, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["code"], code)
+
+    def test_purchase_1(self):
+        url = "/api/purchase/22222/"
+        response: Any = self.client.get(url, format="json")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
