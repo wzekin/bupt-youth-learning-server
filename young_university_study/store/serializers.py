@@ -1,4 +1,4 @@
-from rest_framework import serializers
+from rest_framework import fields, serializers
 
 from ..user.models import User, user_has_college_permission
 from .models import Commodity, PurchaseRecord
@@ -42,10 +42,15 @@ class CommoditySerializers(serializers.ModelSerializer):
 
 
 class PurchaseRecordSerializers(serializers.ModelSerializer):
+    code = fields.CharField(scoure="get_code")
+
     class Meta:
         model = PurchaseRecord
-        fields = ["id", "commodity", "cost", "help_text", "created"]
-        read_only_fields = ["id", "cost", "help_text", "created"]
+        fields = ["commodity", "cost", "help_text", "created"]
+        read_only_fields = ["cost", "help_text", "created"]
+
+    def get_code(self):
+        pass
 
     def create(self, validated_data):
         commodity: Commodity = validated_data["commodity"]

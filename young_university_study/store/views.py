@@ -7,6 +7,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.http.response import HttpResponseForbidden
+from hashids import Hashids
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
@@ -92,7 +93,10 @@ class CommodityViewSet(
 
 
 class PurchaseViewSet(
-    viewsets.GenericViewSet, mixins.CreateModelMixin, mixins.ListModelMixin
+    viewsets.GenericViewSet,
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
 ):
     queryset = PurchaseRecord.objects.all()
     serializer_class = PurchaseRecordSerializers
@@ -123,9 +127,20 @@ class PurchaseViewSet(
             serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
 
+    def retrieve(self, request, *args, **kwargs):
+        hashids = Hashids(salt=settings.SECRET_KEY, min_length=6)
+        self.kwargs["pk"] = hashids.encode(self.kwargs["pk"])[0]
+        return super().retrieve(request, *args, **kwargs)
+
     @action(methods=["post"], detail=True)
-    def exchange(self, request, pk=None):
-        pass
+    def exchange(self, request):
+        hashids = Hashids(salt=settings.SECRET_KEY, min_length=6)
+        self.kwargs["pk"] = hashids.encode(self.kwargs["pk"])[0]
+        record = self.get_object()
+        record.is_exchanged = True
+        record.save()
+        serializer = self.get_serializer(record)
+        return Response(serializer.data)
 
 
 def upload_image(request):

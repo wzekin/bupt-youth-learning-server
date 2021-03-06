@@ -1,4 +1,6 @@
+from django.conf import settings
 from django.db import models
+from hashids import Hashids
 from model_utils.models import SoftDeletableModel
 from young_university_study.user.models import College, User
 
@@ -50,3 +52,7 @@ class PurchaseRecord(models.Model):
 
     def __str__(self) -> str:
         return "%s%s" % (self.customer.__str__(), self.help_text)
+
+    def get_code(self) -> str:
+        hashids = Hashids(salt=settings.SECRET_KEY, min_length=6)
+        return hashids.encode(self.id)
