@@ -74,14 +74,20 @@ class CommodityViewSet(
     # 展示由自己创建的所有的商品
     @action(methods=["GET"], detail=False)
     def my_commodity(self, request):
-        college = request.query_params.get("college", None)
         user: User = request.user
-        if (not college and not user.is_superuser) or not user_has_college_permission(
-            user, college
-        ):
-            return Response(status=status.HTTP_403_FORBIDDEN)
 
-        queryset = Commodity.all_objects.filter(owner=college)
+        if user.is_superuser:
+            queryset = Commodity.all_objects.all()
+        else:
+            queryset = Commodity.all_objects.raw(
+                "SELECT pr.* from store_commodity as pr "
+                "inner join user_permission p on pr.owner_id = p.permission_id "
+                "where p.user_id_id = %s and p.permission_type_id = %s",
+                [
+                    str(user.id),
+                    str(ContentType.objects.get_for_model(College).id),
+                ],
+            )
 
         page = self.paginate_queryset(queryset)
         if page is not None:
