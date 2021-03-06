@@ -1,13 +1,12 @@
 from typing import Any
 
-from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
-from hashids import Hashids
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from ..user.models import College, LeagueBranch, Permission, User
+from ..utils import get_Hashids
 from .models import Commodity, PurchaseRecord
 
 
@@ -337,8 +336,7 @@ class CommonUserTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_purchase(self):
-        hashids = Hashids(salt=settings.SECRET_KEY, min_length=6)
-        code = hashids.encode(1)
+        code = get_Hashids().encode(1)
         url = "/api/purchase/%s/" % code
         response: Any = self.client.get(url, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)

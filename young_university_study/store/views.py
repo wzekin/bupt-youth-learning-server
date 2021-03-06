@@ -7,13 +7,13 @@ from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.http.response import HttpResponseForbidden
-from hashids import Hashids
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 from rest_framework.response import Response
 
 from ..user.models import College, User, user_has_college_permission
+from ..utils import get_Hashids
 from .models import Commodity, PurchaseRecord
 from .serializers import (
     CommoditySerializers,
@@ -143,14 +143,12 @@ class PurchaseViewSet(
         )
 
     def retrieve(self, request, *args, **kwargs):
-        hashids = Hashids(salt=settings.SECRET_KEY, min_length=6)
-        self.kwargs["pk"] = hashids.decode(self.kwargs["pk"])[0]
+        self.kwargs["pk"] = get_Hashids().decode(self.kwargs["pk"])[0]
         return super().retrieve(request, *args, **kwargs)
 
     @action(methods=["post"], detail=True)
     def exchange(self, request):
-        hashids = Hashids(salt=settings.SECRET_KEY, min_length=6)
-        self.kwargs["pk"] = hashids.decode(self.kwargs["pk"])[0]
+        self.kwargs["pk"] = get_Hashids().decode(self.kwargs["pk"])[0]
         record = self.get_object()
         record.is_exchanged = True
         record.save()
