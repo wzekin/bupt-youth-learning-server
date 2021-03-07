@@ -51,6 +51,7 @@ class PurchaseRecord(models.Model):
 
     is_exchanged = models.BooleanField("是否已经兑换", default=False)
 
+    updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self) -> str:

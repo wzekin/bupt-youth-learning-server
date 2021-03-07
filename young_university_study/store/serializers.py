@@ -71,8 +71,25 @@ class PurchaseRecordSerializers(serializers.ModelSerializer):
 
     class Meta:
         model = PurchaseRecord
-        fields = ["commodity", "cost", "help_text", "created", "code", "customer"]
-        read_only_fields = ["cost", "help_text", "created", "code", "customer"]
+        fields = [
+            "commodity",
+            "cost",
+            "help_text",
+            "updated",
+            "created",
+            "code",
+            "customer",
+            "is_exchanged",
+        ]
+        read_only_fields = [
+            "cost",
+            "help_text",
+            "updated",
+            "created",
+            "code",
+            "customer",
+            "is_exchanged",
+        ]
 
     def create(self, validated_data):
         commodity: Commodity = validated_data["commodity"]

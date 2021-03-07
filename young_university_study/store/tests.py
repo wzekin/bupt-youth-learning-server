@@ -191,6 +191,13 @@ class SuperUserTests(APITestCase):
         response: Any = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_purchase_exchange(self):
+        code = get_Hashids().encode(1)
+        url = "/api/purchase/%s/exchange/" % code
+        response: Any = self.client.post(url, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["is_exchanged"], True)
+
 
 class CollegeManagerUserTests(APITestCase):
     @classmethod

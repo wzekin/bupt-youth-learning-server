@@ -130,7 +130,7 @@ class PurchaseViewSet(
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
 ):
-    queryset = PurchaseRecord.objects.all()
+    queryset = PurchaseRecord.objects.all().order_by("-created")
     permission_classes = [PurchaseViewSetPermission]
 
     def get_serializer_class(self):
@@ -140,7 +140,10 @@ class PurchaseViewSet(
             return PurchaseRecordListSerializers
 
     def get_queryset(self):
-        return self.queryset.filter(customer=self.request.user)
+        if self.action == "list":
+            return self.queryset.filter(customer=self.request.user)
+        else:
+            return self.queryset
 
     @transaction.atomic
     def create(self, request, *args, **kwargs):
@@ -172,7 +175,7 @@ class PurchaseViewSet(
         return super().retrieve(request, *args, **kwargs)
 
     @action(methods=["post"], detail=True)
-    def exchange(self, request):
+    def exchange(self, request, *args, **kwargs):
         try:
             self.kwargs["pk"] = get_Hashids().decode(self.kwargs["pk"])[0]
         except Exception:
