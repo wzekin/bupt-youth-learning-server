@@ -34,9 +34,9 @@ class CommoditySerializers(serializers.ModelSerializer):
         if self.partial:
             return data
         user: User = self.context["request"].user
-        if "owner" not in data and not user.is_superuser:
+        if not data.get("owner", None) and not user.is_superuser:
             raise serializers.ValidationError("只有superuser能创建校级商品")
-        elif "owner" in data and not user_has_college_permission(
+        elif data.get("owner", None) and not user_has_college_permission(
             user, data["owner"].id
         ):
             raise serializers.ValidationError("没有创建此商品的权限")
