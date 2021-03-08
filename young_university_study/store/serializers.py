@@ -18,6 +18,7 @@ class CommoditySerializers(serializers.ModelSerializer):
             "picture",
             "limit",
             "owner",
+            "is_removed",
             "updated",
             "created",
         ]

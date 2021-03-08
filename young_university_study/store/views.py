@@ -180,7 +180,9 @@ class PurchaseViewSet(
             self.kwargs["pk"] = get_Hashids().decode(self.kwargs["pk"])[0]
         except Exception:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        record = self.get_object()
+        record: PurchaseRecord = self.get_object()
+        if record.commodity.is_removed:
+            return Response(status=status.HTTP_404_NOT_FOUND)
         record.is_exchanged = True
         record.save()
         serializer = self.get_serializer(record)

@@ -28,6 +28,8 @@ class Commodity(SoftDeletableModel):
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
 
+    objects = models.Manager()
+
     def __str__(self) -> str:
         return self.title
 
