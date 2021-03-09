@@ -63,9 +63,14 @@ class CommodityViewSet(
 
     def list(self, request, *args, **kwargs):
         user: User = request.user
-        queryset = Commodity.available_objects.filter(
-            Q(owner__isnull=True) | Q(owner=user.college)
-        )
+
+        # 防止user.college为空报错
+        if user.college:
+            queryset = Commodity.available_objects.filter(
+                Q(owner__isnull=True) | Q(owner=user.college.id)
+            )
+        else:
+            queryset = Commodity.available_objects.filter(Q(owner__isnull=True))
 
         page = self.paginate_queryset(queryset)
         if page is not None:
