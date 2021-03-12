@@ -23,7 +23,10 @@ class Commodity(SoftDeletableModel):
 
     owner = models.ForeignKey(College, on_delete=models.CASCADE, null=True)
 
-    deadline = models.DateTimeField("截止日期")
+    start_time = models.DateTimeField("开始时间")
+    # 如果想知道为啥命名不统一
+    # 那就去问该死的甲方
+    deadline = models.DateTimeField("截止时间")
 
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)

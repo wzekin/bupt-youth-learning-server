@@ -7,6 +7,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse
 from django.http.response import HttpResponseForbidden
+from django.utils import timezone
 from rest_framework import mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import SAFE_METHODS
@@ -158,10 +159,17 @@ class PurchaseViewSet(
             pk=serializer.validated_data["commodity"].id
         )
         user: User = User.objects.select_for_update().get(pk=request.user.id)
+        if commodity.start_time > timezone.now():
+            return Response("未到兑换时间！", status.HTTP_400_BAD_REQUEST)
+
+        if commodity.deadline < timezone.now():
+            return Response("兑换时间已结束！", status.HTTP_400_BAD_REQUEST)
+
         if user.total_score < commodity.cost:
-            return Response("您的积分不足", status.HTTP_400_BAD_REQUEST)
+            return Response("您的积分不足!", status.HTTP_400_BAD_REQUEST)
         if commodity.limit > 0 and commodity.exchanged >= commodity.limit:
-            return Response("商品已换完", status.HTTP_400_BAD_REQUEST)
+            return Response("商品已换完!", status.HTTP_400_BAD_REQUEST)
+
         user.total_score -= commodity.cost
         user.save()
         commodity.exchanged += 1

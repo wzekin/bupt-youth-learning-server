@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Any
 
 from django.contrib.contenttypes.models import ContentType
@@ -77,7 +78,8 @@ def setUpTestData(cls):
         cost=5,
         exchanged=0,
         limit=0,
-        deadline=timezone.now(),
+        start_time=timezone.now() - timedelta(days=1),
+        deadline=timezone.now() + timedelta(days=1),
     )
 
     cls.commodity2 = Commodity.objects.create(
@@ -88,12 +90,13 @@ def setUpTestData(cls):
         cost=5,
         exchanged=0,
         limit=6,
-        deadline=timezone.now(),
+        start_time=timezone.now() - timedelta(days=1),
+        deadline=timezone.now() + timedelta(days=1),
         owner=cls.college1,
         location="test location",
     )
 
-    cls.commodity2 = Commodity.objects.create(
+    cls.commodity3 = Commodity.objects.create(
         id=3,
         location="test location",
         title="商品3 已经兑换完毕",
@@ -103,7 +106,34 @@ def setUpTestData(cls):
         exchanged=6,
         limit=6,
         owner=cls.college2,
-        deadline=timezone.now(),
+        start_time=timezone.now() - timedelta(days=1),
+        deadline=timezone.now() + timedelta(days=1),
+    )
+    cls.commodity4 = Commodity.objects.create(
+        id=4,
+        location="test location",
+        title="商品4 过兑换时间",
+        describe="描述3",
+        picture="假装有图片",
+        cost=5,
+        exchanged=6,
+        limit=6,
+        owner=cls.college2,
+        start_time=timezone.now() - timedelta(days=1),
+        deadline=timezone.now() - timedelta(days=1),
+    )
+    cls.commodity5 = Commodity.objects.create(
+        id=5,
+        location="test location",
+        title="商品5 未开始兑换",
+        describe="描述3",
+        picture="假装有图片",
+        cost=5,
+        exchanged=6,
+        limit=6,
+        owner=cls.college2,
+        start_time=timezone.now() + timedelta(days=1),
+        deadline=timezone.now() + timedelta(days=1),
     )
 
     Permission.objects.create(
@@ -142,7 +172,7 @@ class SuperUserTests(APITestCase):
         url = "/api/commodity/my_commodity/"
         response: Any = self.client.get(url, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 3)
+        self.assertEqual(len(response.data), 5)
 
     def test_create_commdity(self):
         url = "/api/commodity/"
@@ -152,6 +182,7 @@ class SuperUserTests(APITestCase):
             "describe": "描述3",
             "cost": 5,
             "limit": 6,
+            "start_time": timezone.now(),
             "deadline": timezone.now(),
         }
         response: Any = self.client.post(url, data, format="json")
@@ -228,6 +259,7 @@ class CollegeManagerUserTests(APITestCase):
             "location": "test location",
             "cost": 5,
             "limit": 6,
+            "start_time": timezone.now(),
             "deadline": timezone.now(),
         }
         response: Any = self.client.post(url, data, format="json")
@@ -242,6 +274,7 @@ class CollegeManagerUserTests(APITestCase):
             "owner": 1,
             "cost": 5,
             "limit": 6,
+            "start_time": timezone.now(),
             "deadline": timezone.now(),
         }
         response: Any = self.client.post(url, data, format="json")
@@ -289,7 +322,7 @@ class CommonUserTests(APITestCase):
         url = "/api/commodity/"
         response: Any = self.client.get(url, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(len(response.data), 4)
 
     def test_list_my_commdity_1(self):
         url = "/api/commodity/my_commodity/"
@@ -339,6 +372,18 @@ class CommonUserTests(APITestCase):
     def test_exchange_commdity_2(self):
         url = "/api/purchase/"
         data = {"commodity": 3}
+        response: Any = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_exchange_commdity_3(self):
+        url = "/api/purchase/"
+        data = {"commodity": 4}
+        response: Any = self.client.post(url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_exchange_commdity_4(self):
+        url = "/api/purchase/"
+        data = {"commodity": 5}
         response: Any = self.client.post(url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
