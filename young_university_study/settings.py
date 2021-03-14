@@ -150,3 +150,7 @@ STATIC_ROOT = "./static"
 STATICFILES_DIRS = ["./media"]
 
 AUTH_USER_MODEL = "user.User"
+
+
+# 上传图像大小限制（单位为MB
+UPLOAD_IMAGE_LIMIT = 10

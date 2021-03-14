@@ -219,8 +219,8 @@ def upload_image(request):
     for key, file in request.FILES.items():
         if not file.content_type.startswith("image"):
             data[key] = u"请输入正确的格式！"
-        elif file.size > 1024 * 1024:
-            data[key] = u"图片大小要求1M以内"
+        elif file.size > settings.UPLOAD_IMAGE_LIMIT * 1024 * 1024:
+            data[key] = u"图片大小要求%sM以内" % (settings.UPLOAD_IMAGE_LIMIT)
         else:
             filename = nanoid.generate() + "_" + file.name
             with open(
