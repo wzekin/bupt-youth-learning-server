@@ -194,8 +194,7 @@ class PurchaseViewSet(
         except Exception:
             return Response(status=status.HTTP_404_NOT_FOUND)
         record: PurchaseRecord = self.get_object()
-        if record.commodity.is_removed:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+
         record.is_exchanged = True
         record.save()
         serializer = self.get_serializer(record)
