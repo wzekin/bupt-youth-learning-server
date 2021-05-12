@@ -87,6 +87,13 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     def validate(self, data):
         college = data["college"]
         league_branch = data["league_branch"]
+
+        if not college:
+            raise serializers.ValidationError("请输入学院")
+
+        if not league_branch:
+            raise serializers.ValidationError("请输入团支部")
+
         if not LeagueBranch.objects.filter(
             id=league_branch.id, college=college
         ).exists():
